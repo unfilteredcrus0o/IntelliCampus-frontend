@@ -1,11 +1,14 @@
 import { useState } from "react";
+import Button from '@mui/material/Button';
 
 function App() {
   const [status, setStatus] = useState("");
 
+  const apiUrl = import.meta.env.VITE_API_URL;
+
   const checkHealth = async () => {
     try {
-      const res = await fetch("http://127.0.0.1:8000/health");
+      const res = await fetch(`${apiUrl}/health`);
       const data = await res.json();
       setStatus(data.status);
     } catch (err) {
@@ -14,14 +17,15 @@ function App() {
   };
 
   return (
-    <div style={{ padding: "20px" }}>
+    <div style={{ padding: 20 }}>
       <h1>Health Check</h1>
-      <button 
-        onClick={checkHealth} 
-        style={{ padding: "10px", fontSize: "16px" }}
+      <Button 
+        variant="contained" 
+        color="primary" 
+        onClick={checkHealth}
       >
         Check Health
-      </button>
+      </Button>
       {status && <p>Backend status: {status}</p>}
     </div>
   );
