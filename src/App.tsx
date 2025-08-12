@@ -1,24 +1,25 @@
 import { useState } from "react";
 import Button from '@mui/material/Button';
+import HomePage from "./componenets/layout/HomePage";
 
 function App() {
-  const [status, setStatus] = useState("");
+  // const [status, setStatus] = useState("");
 
-  const apiUrl = import.meta.env.VITE_API_URL;
+  // const apiUrl = import.meta.env.VITE_API_URL;
 
-  const checkHealth = async () => {
-    try {
-      const res = await fetch(`${apiUrl}/health`);
-      const data = await res.json();
-      setStatus(data.status);
-    } catch (err) {
-      setStatus("Error connecting to backend");
-    }
-  };
+  // const checkHealth = async () => {
+  //   try {
+  //     const res = await fetch(`${apiUrl}/health`);
+  //     const data = await res.json();
+  //     setStatus(data.status);
+  //   } catch (err) {
+  //     setStatus("Error connecting to backend");
+  //   }
+  // };
 
   return (
     <div style={{ padding: 20 }}>
-      <h1>Health Check</h1>
+      {/* <h1>Health Check</h1>
       <Button 
         variant="contained" 
         color="primary" 
@@ -26,7 +27,8 @@ function App() {
       >
         Check Health
       </Button>
-      {status && <p>Backend status: {status}</p>}
+      {status && <p>Backend status: {status}</p>} */}
+      <HomePage/>
     </div>
   );
 }
