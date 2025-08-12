@@ -4,6 +4,7 @@ import SignIn from "../features/auth/pages/SignIn";
 import SignUp from "../features/auth/pages/SignUp";
 import NavTabs from "../componenets/layout/Navbar";
 import HomePage from "../componenets/layout/HomePage";
+import Roadmap from '../componenets/layout/Roadmap';
 
 function AppRoutes() {
   return (
@@ -13,6 +14,7 @@ function AppRoutes() {
       <div style={{ padding: 20 }}>
         <Routes>
           <Route path="/" element={<HomePage/>} />
+          <Route path="/roadmap" element={<Roadmap />} />
           <Route path="/login" element={<SignIn/>} />
           <Route path="/signup" element={<SignUp/>} />
         </Routes>
