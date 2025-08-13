@@ -1,7 +1,10 @@
 import React from "react";
-import { Box, Typography, Container, Button, Stack } from "@mui/material";
+import { Typography, Container, Button, Stack } from "@mui/material";
+import { useNavigate } from "react-router-dom";
 
 const HomePage: React.FC = () => {
+  const navigate = useNavigate();
+
   return (
     <Container
       maxWidth="md"
@@ -18,7 +21,7 @@ const HomePage: React.FC = () => {
         IntelliCampus
       </Typography>
 
-      <Typography variant="h6"  paragraph>
+      <Typography variant="h6" paragraph>
         IntelliCampus is your intelligent learning companion, designed to
         transform the way you master new skills. Generate personalized roadmaps
         for any topic, follow step-by-step milestones, and engage with
@@ -27,7 +30,7 @@ const HomePage: React.FC = () => {
       </Typography>
 
       <Stack direction="row" spacing={2} sx={{ mt: 3 }}>
-        <Button variant="contained" size="large">
+        <Button variant="contained" size="large" onClick={() => navigate("/roadmap")}>
           Get Started
         </Button>
         <Button variant="outlined" size="large">
