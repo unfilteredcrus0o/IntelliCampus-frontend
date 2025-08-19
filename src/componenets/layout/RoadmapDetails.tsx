@@ -79,10 +79,10 @@ const RoadmapDetails = () => {
     }
   };
 
+  if(loading) {return <CircularProgress sx={{ alignSelf: "center" }} />}
+
   return (
-    <div>
-      {(loading) && 
-      <CircularProgress sx={{ alignSelf: "center" }} />}
+    <div>      
       <Typography variant="h4" gutterBottom>
         {roadmap.title}
       </Typography>
