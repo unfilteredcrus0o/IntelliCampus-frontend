@@ -5,6 +5,7 @@ import SignUp from "../features/auth/pages/SignUp";
 import NavTabs from "../componenets/layout/Navbar";
 import HomePage from "../componenets/layout/HomePage";
 import Roadmap from '../componenets/layout/Roadmap';
+import RoadmapDetails from '../componenets/layout/RoadmapDetails';
 
 function AppRoutes() {
   return (
@@ -17,6 +18,7 @@ function AppRoutes() {
           <Route path="/roadmap" element={<Roadmap />} />
           <Route path="/login" element={<SignIn/>} />
           <Route path="/signup" element={<SignUp/>} />
+          <Route path="/roadmap/:roadmapId" element={<RoadmapDetails />} />
         </Routes>
       </div>
     </Router>

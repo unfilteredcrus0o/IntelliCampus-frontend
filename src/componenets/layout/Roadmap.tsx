@@ -14,6 +14,8 @@ import {
   Snackbar,
   Alert,
 } from "@mui/material";
+import * as Constants from "../../constants";
+import { useNavigate } from "react-router-dom";
 
 const topicsList = ["Python", "Git", "JavaScript", "React", "CSS"];
 
@@ -24,21 +26,46 @@ const RoadmapScreen: React.FC = () => {
   const [minutes, setMinutes] = useState<number | "">("");
   const [loading, setLoading] = useState(false);
   const [toastOpen, setToastOpen] = useState(false);
+  const { ROADMAP_ENDPOINTS } = Constants;
+  const navigate = useNavigate();
+  const isFormValid =
+  selectedTopics.length > 0 &&
+  skillLevel !== "" &&
+  ((Number(hours) || 0) > 0 || (Number(minutes) || 0) > 0);
 
-  const handleSubmit = (e: React.FormEvent) => {
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
     const totalMinutes = (Number(hours) || 0) * 60 + (Number(minutes) || 0);
+    const formattedDuration = `${Math.floor(totalMinutes / 60)}h ${
+      totalMinutes % 60
+    }m`;
 
-    setTimeout(() => {
-      console.log("Submitted:", {
-        selectedTopics,
-        skillLevel,
-        duration: `${Math.floor(totalMinutes / 60)}h ${totalMinutes % 60}m`,
+    const payload = {
+      selectedTopics,
+      skillLevel,
+      duration: formattedDuration,
+    };
+    try {
+      const response = await fetch(ROADMAP_ENDPOINTS.CREATE, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
       });
+
+      const data = await response.json();
+      if (data.roadmap_id && data.status === "ready") {
+        navigate(`/roadmap/${data.roadmap_id}`);
+      }
+    } catch (error) {
+      console.error("Error submitting roadmap:", error);
+    } finally {
       setLoading(false);
-    }, 2000);
+    }
   };
 
   const handleHoursChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -138,7 +165,7 @@ const RoadmapScreen: React.FC = () => {
           </Stack>
         </Box>
 
-        <Button variant="contained" type="submit" disabled={loading}>
+       <Button variant="contained" type="submit" disabled={loading || !isFormValid}>
           Submit
         </Button>
 
