@@ -54,6 +54,7 @@ const NavTabs: React.FC = () => {
   const handleLogout = () => {
     sessionStorage.removeItem('isAuthenticated');
     sessionStorage.removeItem('user');
+    sessionStorage.removeItem('authToken');
     setIsAuthenticated(false);
     setUser(null);
     setAnchorEl(null);

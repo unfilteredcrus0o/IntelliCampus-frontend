@@ -15,6 +15,7 @@ import ReactMarkdown from "react-markdown";
 import { ROADMAP_ENDPOINTS } from "../../constants";
 import { Stepper, Step, StepLabel } from "@mui/material";
 import { IconButton } from "@mui/material";
+import { makeAuthenticatedRequest } from "../../utils/api";
 
 const RoadmapDetails = () => {
   const { roadmapId } = useParams<{ roadmapId: string }>();
@@ -39,7 +40,12 @@ const RoadmapDetails = () => {
   useEffect(() => {
     const fetchRoadmap = async () => {
       try {
-        const response = await fetch(ROADMAP_ENDPOINTS.GET_BY_ID(roadmapId));
+        console.log('Fetching roadmap with ID:', roadmapId);
+        const response = await makeAuthenticatedRequest(ROADMAP_ENDPOINTS.GET_BY_ID(roadmapId));
+        
+        if (!response.ok) {
+          throw new Error(`Failed to fetch roadmap: ${response.status}`);
+        }
         const data = await response.json();
         setRoadmap(data);
       } catch (error) {
@@ -63,7 +69,7 @@ const RoadmapDetails = () => {
 
     setExplanationLoading(true);
     try {
-      const response = await fetch(
+      const response = await makeAuthenticatedRequest(
         ROADMAP_ENDPOINTS.TOPIC_EXPLANATION(topicId)
       );
       const data = await response.json();
@@ -140,7 +146,7 @@ const RoadmapDetails = () => {
               <>
                 <Typography variant="h6">📚 {activeMilestone.name}</Typography>
                 <List>
-                  {activeMilestone.topics.map((topic: any) => (
+                  {activeMilestone.topics?.map((topic: any) => (
                     <ListItem
                       key={topic.id}
                       component="button"
@@ -157,22 +163,22 @@ const RoadmapDetails = () => {
                   ))}
                 </List>
 
-                <LinearProgress
-                  variant="determinate"
-                  value={
-                    (activeMilestone.topics.filter((t: any) =>
-                      visitedTopics.has(t.id)
-                    ).length /
-                      activeMilestone.topics.length) *
-                    100
-                  }
-                  sx={{ mt: 2 }}
-                />
+                    <LinearProgress
+                      variant="determinate"
+                      value={
+                        (activeMilestone.topics.filter((t: any) =>
+                          visitedTopics.has(t.id)
+                        ).length /
+                          activeMilestone.topics.length) *
+                        100
+                      }
+                      sx={{ mt: 2 }}
+                    />
 
-                {activeMilestone.topics.every((topic: any) =>
-                  visitedTopics.has(topic.id)
-                ) &&
-                  !completedMilestones.has(activeMilestone.id) && (
+                    {activeMilestone.topics.every((topic: any) =>
+                      visitedTopics.has(topic.id)
+                    ) &&
+                      !completedMilestones.has(activeMilestone.id) && (
                     <Box sx={{ mt: 2, textAlign: "center" }}>
                       <button
                         style={{
@@ -193,7 +199,7 @@ const RoadmapDetails = () => {
                         ✅ Complete Milestone
                       </button>
                     </Box>
-                  )}
+                )}
               </>
             )}
           </Box>

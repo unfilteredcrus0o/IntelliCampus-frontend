@@ -16,6 +16,7 @@ import {
 } from "@mui/material";
 import * as Constants from "../../constants";
 import { useNavigate } from "react-router-dom";
+import { makeAuthenticatedRequest } from "../../utils/api";
 
 const topicsList = ["Python", "Git", "JavaScript", "React", "CSS"];
 
@@ -49,17 +50,16 @@ const RoadmapScreen: React.FC = () => {
       duration: formattedDuration,
     };
     try {
-      const response = await fetch(ROADMAP_ENDPOINTS.CREATE, {
+      const response = await makeAuthenticatedRequest(ROADMAP_ENDPOINTS.CREATE, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(payload),
+        body: payload,
       });
 
       const data = await response.json();
       if (data.roadmap_id && data.status === "ready") {
         navigate(`/roadmap/${data.roadmap_id}`);
+      } else {
+        console.error("Unexpected response:", data);
       }
     } catch (error) {
       console.error("Error submitting roadmap:", error);
