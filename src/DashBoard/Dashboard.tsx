@@ -24,7 +24,6 @@ const Dashboard: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
-console.log('enrollments',enrollments);
 
   const getStatusColor = (status: string) => {
     switch (status.toLowerCase()) {
@@ -42,7 +41,7 @@ console.log('enrollments',enrollments);
   const getProgressColor = (progress: number) => {
     if (progress >= 1 && progress <= 35) return "#f44336"; // Red
     if (progress > 35 && progress <= 50) return "#2196f3"; // Blue
-    return "#4caf50"; // Green (51–100)
+    return "#4caf50"; // Green
   };
 
   const getButtonLabel = (status: string) => {
@@ -60,23 +59,26 @@ console.log('enrollments',enrollments);
 
   useEffect(() => {
     const fetchEnrollments = async () => {
+      setLoading(true);
+      setError(null);
+
       try {
         const response = await makeAuthenticatedRequest(
           ROADMAP_ENDPOINTS.ENROLLEMENTS,
           { method: "GET" }
         );
-        const data = await response.json();
-        console.log(data);
-        
 
-        if (data?.data && Array.isArray(data.data)) {
-          setEnrollments(data.data);
-        } else if (Array.isArray(data)) {
+        const data = await response.json();
+
+        if (Array.isArray(data)) {
           setEnrollments(data);
+        } else if (Array.isArray(data.data)) {
+          setEnrollments(data.data);
         } else {
           setEnrollments([]);
         }
       } catch (err: any) {
+        console.error(err);
         setError(err.message || "Failed to fetch enrollments");
         setEnrollments([]);
       } finally {
@@ -86,7 +88,7 @@ console.log('enrollments',enrollments);
 
     fetchEnrollments();
   }, []);
-  
+
   return (
     <Box p={3}>
       <Card
@@ -108,21 +110,21 @@ console.log('enrollments',enrollments);
           </Typography>
 
           {loading ? (
-            <Typography align="center" color="text.secondary">
-              Loading...
-            </Typography>
+            <Box display="flex" justifyContent="center" mt={4}>
+              <CircularProgress />
+            </Box>
           ) : error ? (
             <Typography align="center" color="error">
               {error}
             </Typography>
-          ) : enrollments.length === 0 ? (
+          ) : !Array.isArray(enrollments) || enrollments.length === 0 ? (
             <Typography align="center" color="text.secondary">
               No enrollments found.
             </Typography>
           ) : (
             <Grid container spacing={3} justifyContent="center">
               {enrollments.map((enrollment) => (
-                <Grid item key={enrollment.id}>
+                <Grid item key={enrollment.id} xs={12} sm={6} md={4}>
                   <Card
                     sx={{
                       width: 400,
@@ -152,6 +154,7 @@ console.log('enrollments',enrollments);
                       },
                     }}
                   >
+                    {/* Status Badge */}
                     <Box
                       sx={{
                         position: "absolute",
@@ -171,6 +174,7 @@ console.log('enrollments',enrollments);
                       {enrollment.status}
                     </Box>
 
+                    {/* Title */}
                     <Typography
                       variant="h6"
                       sx={{
@@ -191,49 +195,6 @@ console.log('enrollments',enrollments);
                     >
                       {enrollment.title}
                     </Typography>
-
-                    <Box
-                      sx={{
-                        position: "absolute",
-                        bottom: 16,
-                        display: "flex",
-                        flexDirection: "column",
-                        alignItems: "center",
-                      }}
-                    >
-                      {/* <Box position="relative" display="inline-flex">
-                        <CircularProgress
-                          variant="determinate"
-                          value={enrollment.progress_percentage}
-                          size={60}
-                          thickness={5}
-                          sx={{
-                            color: getProgressColor(enrollment.progress),
-                          }}
-                        />
-                        <Box
-                          sx={{
-                            top: 0,
-                            left: 0,
-                            bottom: 0,
-                            right: 0,
-                            position: "absolute",
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                          }}
-                        >
-                          <Typography
-                            variant="caption"
-                            component="div"
-                            color="white"
-                            fontWeight={600}
-                          >
-                            {`${enrollment.progress}%`}
-                          </Typography>
-                        </Box>
-                      </Box> */}
-                    </Box>
 
                     {/* Continue Button */}
                     <Button
