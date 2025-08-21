@@ -1,0 +1,83 @@
+.homepage-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 90vh;
+  text-align: center;
+  padding-top: 32px;
+  padding-bottom: 32px;
+}
+
+.homepage-hero-section {
+  margin-bottom: 48px;
+}
+
+.homepage-main-title {
+  font-weight: bold !important;
+  color: #8B1538 !important;
+  margin-bottom: 24px !important;
+  font-family: "Times New Roman", Roboto, "Helvetica Neue", Arial, sans-serif !important;
+  font-size: 2.5rem !important;
+}
+
+/* Responsive font sizes for main title */
+@media (min-width: 900px) {
+  .homepage-main-title {
+    font-size: 3.5rem !important;
+  }
+}
+
+.homepage-tagline {
+  color: #333 !important;
+  font-weight: 400 !important;
+  margin-left: auto;
+  margin-right: auto;
+  line-height: 1.6 !important;
+  font-family: "Inter", "Segoe UI", "Roboto", sans-serif !important;
+}
+
+.homepage-description {
+  color: #666 !important;
+  max-width: 700px;
+  margin-left: auto;
+  margin-right: auto;
+  line-height: 1.8 !important;
+  font-weight: 300 !important;
+  font-family: "Inter", "Segoe UI", "Roboto", sans-serif !important;
+}
+
+.homepage-features-section {
+  display: flex;
+  justify-content: center;
+  gap: 32px;
+  margin-bottom: 48px;
+  flex-wrap: wrap;
+}
+
+.homepage-feature-box {
+  text-align: center;
+  min-width: 120px;
+}
+
+.homepage-feature-emoji {
+  margin-bottom: 8px !important;
+}
+
+.homepage-feature-title-smart {
+  color: #8B1538 !important;
+  font-weight: bold !important;
+  font-family: "Inter", "Segoe UI", "Roboto", sans-serif !important;
+}
+
+.homepage-feature-title-progress {
+  color: #2e7d32 !important;
+  font-weight: bold !important;
+  font-family: "Inter", "Segoe UI", "Roboto", sans-serif !important;
+}
+
+.homepage-feature-title-interactive {
+  color: #f57c00 !important;
+  font-weight: bold !important;
+  font-family: "Inter", "Segoe UI", "Roboto", sans-serif !important;
+}

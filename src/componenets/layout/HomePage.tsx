@@ -1,42 +1,59 @@
 import React from "react";
-import { Typography, Container, Button, Stack } from "@mui/material";
-import { useNavigate } from "react-router-dom";
+import { Typography, Container, Box } from "@mui/material";
+import './HomePage.css';
 
 const HomePage: React.FC = () => {
-  const navigate = useNavigate();
-
   return (
     <Container
       maxWidth="md"
-      sx={{
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        justifyContent: "center",
-        minHeight: "100vh",
-        textAlign: "center",
-      }}
+      className="homepage-container"
     >
-      <Typography variant="h2" gutterBottom>
-        IntelliCampus
-      </Typography>
+      <Box className="homepage-hero-section">
+        <Typography
+          variant="h2"
+          gutterBottom
+          className="homepage-main-title"
+        >
+          IntelliCampus
+        </Typography>
 
-      <Typography variant="h6" paragraph>
-        IntelliCampus is your intelligent learning companion, designed to
-        transform the way you master new skills. Generate personalized roadmaps
-        for any topic, follow step-by-step milestones, and engage with
-        interactive materials, quizzes, and coding challenges — all tailored to
-        your pace and style.
-      </Typography>
+        <Typography
+          variant="h5"
+          className="homepage-tagline"
+        >
+          Your intelligent learning companion for mastering new skills
+        </Typography>
 
-      <Stack direction="row" spacing={2} sx={{ mt: 3 }}>
-        <Button variant="contained" size="large" onClick={() => navigate("/roadmap")}>
-          Get Started
-        </Button>
-        <Button variant="outlined" size="large">
-          Learn More
-        </Button>
-      </Stack>
+        <Typography
+          variant="h6"
+          className="homepage-description"
+        >
+          Generate personalized roadmaps, track your progress, and engage with
+          interactive content tailored to your learning pace and style.
+        </Typography>
+      </Box>
+
+      {/* Features Section */}
+      <Box className="homepage-features-section">
+        <Box className="homepage-feature-box">
+          <Typography variant="h3" className="homepage-feature-emoji">🎓</Typography>
+          <Typography variant="h6" className="homepage-feature-title-smart">
+            Smart Learning
+          </Typography>
+        </Box>
+        <Box className="homepage-feature-box">
+          <Typography variant="h3" className="homepage-feature-emoji">📊</Typography>
+          <Typography variant="h6" className="homepage-feature-title-progress">
+            Track Progress
+          </Typography>
+        </Box>
+        <Box className="homepage-feature-box">
+          <Typography variant="h3" className="homepage-feature-emoji">💡</Typography>
+          <Typography variant="h6" className="homepage-feature-title-interactive">
+            Interactive
+          </Typography>
+        </Box>
+      </Box>
     </Container>
   );
 };
