@@ -23,14 +23,10 @@ const SignUpPage: React.FC = () => {
         confirmPassword,
       });
       console.log('Register success:', res.data);
-      setSuccessMessage('Signup successful! Welcome to IntelliCampus!');
-
-      const userName = email.split('@')[0];
-      sessionStorage.setItem('user', JSON.stringify({ name: userName, email }));
-      sessionStorage.setItem('isAuthenticated', 'true');
-
-      navigate('/');
-    } catch (err) {
+      setSuccessMessage('Account created successfully! Please sign in to continue.');
+      
+      navigate('/login');
+    } catch (err: any) {
       console.error('Register error:', err);
       setSuccessMessage('');
     }
