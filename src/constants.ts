@@ -8,6 +8,7 @@ export const ROADMAP_ENDPOINTS = {
   CREATE: `${API_BASE_URL}/roadmap/create`,
   GET_BY_ID: (id: string) => `${API_BASE_URL}/roadmap/${id}`,
   TOPIC_EXPLANATION: (topicId: string) => `${API_BASE_URL}/topic/${topicId}/explanation`,
+  ENROLLEMENTS: `${API_BASE_URL}/dashboard/enrollments`
 };
 
 // Progress Endpoints
