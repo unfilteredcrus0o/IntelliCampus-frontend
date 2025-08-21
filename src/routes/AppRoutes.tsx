@@ -15,7 +15,7 @@ function AppRoutes() {
     <div>
       <Router>
       <NavTabs />
-      <div style={{ padding: 20 }}>
+      <div>
         <Routes>
           <Route path="/" element={<HomePage/>} />
           <Route path="/login" element={<SignIn/>} />

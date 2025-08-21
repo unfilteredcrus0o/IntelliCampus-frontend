@@ -20,6 +20,14 @@ const SignInPage: React.FC = () => {
       });
       console.log('Login success:', res.data);
       setSuccessMessage('Login successful!');  
+      
+      if (res.data.token) {
+        sessionStorage.setItem('authToken', res.data.token);
+      } else if (res.data.access_token) {
+        sessionStorage.setItem('authToken', res.data.access_token);
+      } else {
+        console.log('No token found in response. Available fields:', Object.keys(res.data));
+      }
       const userName = email.split('@')[0];
       sessionStorage.setItem('user', JSON.stringify({ name: userName, email }));
       sessionStorage.setItem('isAuthenticated', 'true');
