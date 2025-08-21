@@ -6,6 +6,9 @@ import NavTabs from "../componenets/layout/Navbar";
 import HomePage from "../componenets/layout/HomePage";
 import Roadmap from '../componenets/layout/Roadmap';
 import RoadmapDetails from '../componenets/layout/RoadmapDetails';
+import Dashboard from '../DashBoard/Dashboard';
+import NotFound from '../components/NotFound';
+import ProtectedRoute from '../components/ProtectedRoute';
 
 function AppRoutes() {
   return (
@@ -15,10 +18,24 @@ function AppRoutes() {
       <div style={{ padding: 20 }}>
         <Routes>
           <Route path="/" element={<HomePage/>} />
-          <Route path="/roadmap" element={<Roadmap />} />
           <Route path="/login" element={<SignIn/>} />
           <Route path="/signup" element={<SignUp/>} />
-          <Route path="/roadmap/:roadmapId" element={<RoadmapDetails />} />
+          <Route path="/dashboard" element={
+            <ProtectedRoute>
+              <Dashboard />
+            </ProtectedRoute>
+          } />
+          <Route path="/roadmap" element={
+            <ProtectedRoute>
+              <Roadmap />
+            </ProtectedRoute>
+          } />
+          <Route path="/roadmap/:roadmapId" element={
+            <ProtectedRoute>
+              <RoadmapDetails />
+            </ProtectedRoute>
+          } />
+          <Route path="*" element={<NotFound />} />
         </Routes>
       </div>
     </Router>
