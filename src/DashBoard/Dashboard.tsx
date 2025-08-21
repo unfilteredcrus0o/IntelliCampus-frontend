@@ -61,18 +61,16 @@ const Dashboard: React.FC = () => {
     const fetchEnrollments = async () => {
       setLoading(true);
       setError(null);
-
       try {
         const response = await makeAuthenticatedRequest(
           ROADMAP_ENDPOINTS.ENROLLEMENTS,
           { method: "GET" }
         );
-
         const data = await response.json();
 
         if (Array.isArray(data)) {
           setEnrollments(data);
-        } else if (Array.isArray(data.data)) {
+        } else if (Array.isArray(data?.data)) {
           setEnrollments(data.data);
         } else {
           setEnrollments([]);
@@ -117,14 +115,14 @@ const Dashboard: React.FC = () => {
             <Typography align="center" color="error">
               {error}
             </Typography>
-          ) : !Array.isArray(enrollments) || enrollments.length === 0 ? (
+          ) : !enrollments || enrollments.length === 0 ? (
             <Typography align="center" color="text.secondary">
               No enrollments found.
             </Typography>
           ) : (
             <Grid container spacing={3} justifyContent="center">
               {enrollments.map((enrollment) => (
-                <Grid item key={enrollment.id} xs={12} sm={6} md={4}>
+                <Grid  key={enrollment.id} component="div">
                   <Card
                     sx={{
                       width: 400,
@@ -154,7 +152,6 @@ const Dashboard: React.FC = () => {
                       },
                     }}
                   >
-                    {/* Status Badge */}
                     <Box
                       sx={{
                         position: "absolute",
@@ -174,7 +171,6 @@ const Dashboard: React.FC = () => {
                       {enrollment.status}
                     </Box>
 
-                    {/* Title */}
                     <Typography
                       variant="h6"
                       sx={{
@@ -196,7 +192,6 @@ const Dashboard: React.FC = () => {
                       {enrollment.title}
                     </Typography>
 
-                    {/* Continue Button */}
                     <Button
                       className="continue-btn"
                       variant="contained"
