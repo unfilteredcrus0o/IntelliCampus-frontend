@@ -13,10 +13,13 @@ import {
   Stack,
   Snackbar,
   Alert,
+  Container,
+  Chip,
 } from "@mui/material";
 import * as Constants from "../../constants";
 import { useNavigate } from "react-router-dom";
 import { makeAuthenticatedRequest } from "../../utils/api";
+import "./Roadmap.css";
 
 const topicsList = ["Python", "Git", "JavaScript", "React", "CSS"];
 
@@ -98,95 +101,166 @@ const RoadmapScreen: React.FC = () => {
   };
 
   return (
-    <Paper elevation={4} sx={{ p: 4, maxWidth: 500, margin: "auto", mt: 5 }}>
-      <Typography variant="h5" fontWeight={700} gutterBottom>
-        Roadmap Builder
-      </Typography>
+    <div className="roadmap-container">
+      <Container maxWidth="sm">
+        <Paper elevation={4} className="roadmap-form-paper">
+          <div className="roadmap-header">
+            <Typography variant="h4" component="h1">
+              Roadmap Builder
+            </Typography>
+          </div>
 
-      <Box
-        component="form"
-        onSubmit={handleSubmit}
-        sx={{ display: "flex", flexDirection: "column", gap: 3 }}
-      >
-        <Autocomplete
-          multiple
-          options={topicsList}
-          value={selectedTopics}
-          onChange={(event, newValue) => setSelectedTopics(newValue)}
-          renderInput={(params) => (
-            <TextField {...params} label="Select Topics" placeholder="Topics" />
-          )}
-        />
+          <div className="roadmap-form-content">
+            <Box
+              component="form"
+              onSubmit={handleSubmit}
+              sx={{ display: "flex", flexDirection: "column", gap: 2 }}
+            >
+              {/* Topics Selection */}
+              <Box className="form-section">
+                <Typography variant="h6" className="form-section-title">
+                  Select Learning Topics
+                </Typography>
+                <Autocomplete
+                  multiple
+                  options={topicsList}
+                  value={selectedTopics}
+                  onChange={(event, newValue) => setSelectedTopics(newValue)}
+                  className="topics-autocomplete"
+                  renderInput={(params) => (
+                    <TextField 
+                      {...params} 
+                      label="Choose your interests" 
+                      placeholder="e.g., Python, React, JavaScript" 
+                      helperText="Select one or more topics you want to learn"
+                    />
+                  )}
+                  renderTags={(value, getTagProps) =>
+                    value.map((option, index) => (
+                      <Chip
+                        key={option}
+                        label={option}
+                        {...getTagProps({ index })}
+                        sx={{
+                          background: "linear-gradient(135deg, #a01441 0%, #c8185a 100%)",
+                          color: "white",
+                          borderRadius: "16px",
+                          fontWeight: 600,
+                          "& .MuiChip-deleteIcon": {
+                            color: "rgba(255, 255, 255, 0.8)",
+                            "&:hover": {
+                              color: "white",
+                            },
+                          },
+                        }}
+                      />
+                    ))
+                  }
+                />
+              </Box>
 
-        <Box>
-          <Typography variant="subtitle1" gutterBottom>
-            Skill Level
-          </Typography>
-          <RadioGroup
-            row
-            value={skillLevel}
-            onChange={(e) => setSkillLevel(e.target.value)}
+              {/* Skill Level */}
+              <Box className="form-section">
+                <Typography variant="h6" className="form-section-title">
+                  Current Skill Level
+                </Typography>
+                <RadioGroup
+                  row
+                  value={skillLevel}
+                  onChange={(e) => setSkillLevel(e.target.value)}
+                  className="skill-level-group"
+                >
+                  <FormControlLabel 
+                    value="basic" 
+                    control={<Radio />} 
+                    label="Beginner" 
+                  />
+                  <FormControlLabel
+                    value="intermediate"
+                    control={<Radio />}
+                    label="Intermediate"
+                  />
+                  <FormControlLabel
+                    value="advanced"
+                    control={<Radio />}
+                    label="Advanced"
+                  />
+                </RadioGroup>
+              </Box>
+
+              {/* Duration */}
+              <Box className="form-section">
+                <Typography variant="h6" className="form-section-title">
+                  Study Duration
+                </Typography>
+                <Stack direction="row" spacing={2} className="duration-inputs">
+                  <TextField
+                    label="Hours"
+                    type="number"
+                    value={hours === "" ? "" : Number(hours)}
+                    onChange={handleHoursChange}
+                    inputProps={{ min: 0, max: 1000 }}
+                    fullWidth
+                    helperText="Hours per week"
+                  />
+                  <TextField
+                    label="Minutes"
+                    type="number"
+                    value={minutes === "" ? "" : Number(minutes)}
+                    onChange={handleMinutesChange}
+                    inputProps={{ min: 0, max: 59 }}
+                    fullWidth
+                    helperText="Additional minutes"
+                  />
+                </Stack>
+              </Box>
+
+              {/* Submit Button */}
+              <Button 
+                variant="contained" 
+                type="submit" 
+                disabled={loading || !isFormValid}
+                className="submit-button"
+                size="large"
+              >
+                {loading ? (
+                  <>
+                    <CircularProgress size={20} color="inherit" sx={{ mr: 1 }} />
+                    Creating Your Roadmap...
+                  </>
+                ) : (
+                  "Create My Learning Roadmap"
+                )}
+              </Button>
+
+              {loading && (
+                <Box sx={{ textAlign: "center", mt: 2 }}>
+                  <Typography variant="body2" color="text.secondary">
+                    Generating personalized learning path...
+                  </Typography>
+                </Box>
+              )}
+            </Box>
+          </div>
+
+          <Snackbar
+            open={toastOpen}
+            autoHideDuration={4000}
+            onClose={() => setToastOpen(false)}
+            anchorOrigin={{ vertical: "top", horizontal: "center" }}
+            className="warning-snackbar"
           >
-            <FormControlLabel value="basic" control={<Radio />} label="Basic" />
-            <FormControlLabel
-              value="intermediate"
-              control={<Radio />}
-              label="Intermediate"
-            />
-            <FormControlLabel
-              value="advanced"
-              control={<Radio />}
-              label="Advanced"
-            />
-          </RadioGroup>
-        </Box>
-
-        <Box>
-          <Typography variant="subtitle1" gutterBottom>
-            Duration
-          </Typography>
-          <Stack direction="row" spacing={2}>
-            <TextField
-              label="Hours"
-              type="number"
-              value={hours === "" ? "" : Number(hours)}
-              onChange={handleHoursChange}
-              inputProps={{ min: 0, max: 1000 }}
-              fullWidth
-            />
-            <TextField
-              label="Minutes"
-              type="number"
-              value={minutes === "" ? "" : Number(minutes)}
-              onChange={handleMinutesChange}
-              inputProps={{ min: 0, max: 59 }}
-              fullWidth
-            />
-          </Stack>
-        </Box>
-
-       <Button variant="contained" type="submit" disabled={loading || !isFormValid}>
-          Submit
-        </Button>
-
-        {loading && <CircularProgress sx={{ alignSelf: "center" }} />}
-      </Box>
-
-      <Snackbar
-        open={toastOpen}
-        autoHideDuration={4000}
-        onClose={() => setToastOpen(false)}
-        anchorOrigin={{ vertical: "top", horizontal: "center" }}
-      >
-        <Alert
-          severity="warning"
-          onClose={() => setToastOpen(false)}
-          sx={{ width: "100%" }}
-        >
-          Please limit the time to less than 1000 hours for efficient learning.
-        </Alert>
-      </Snackbar>
-    </Paper>
+            <Alert
+              severity="warning"
+              onClose={() => setToastOpen(false)}
+              sx={{ width: "100%" }}
+            >
+              Please limit the time to less than 1000 hours for efficient learning.
+            </Alert>
+          </Snackbar>
+        </Paper>
+      </Container>
+    </div>
   );
 };
 

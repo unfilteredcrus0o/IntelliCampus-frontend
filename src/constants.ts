@@ -10,6 +10,11 @@ export const ROADMAP_ENDPOINTS = {
   TOPIC_EXPLANATION: (topicId: string) => `${API_BASE_URL}/topic/${topicId}/explanation`,
 };
 
+// Progress Endpoints
+export const PROGRESS_ENDPOINTS = {
+  UPDATE: `${API_BASE_URL}/progress/update`,
+};
+
 //  Auth Endpoints
 export const AUTH_ENDPOINTS = {
   LOGIN: `${API_BASE_URL}/auth/login`,

@@ -1,0 +1,529 @@
+/* RoadmapDetails Component Styles */
+.roadmap-details-container {
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  min-height: 100vh;
+  padding: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Helvetica Neue', Arial, sans-serif;
+}
+
+.roadmap-header-section {
+  background: linear-gradient(135deg, #a01441 0%, #c8185a 100%);
+  color: white;
+  padding: 40px 20px;
+  position: relative;
+  overflow: hidden;
+}
+
+.roadmap-header-section::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 100" fill="white" opacity="0.1"><polygon points="0,0 1000,0 1000,100"/></svg>') no-repeat center center;
+  background-size: cover;
+}
+
+.roadmap-header-content {
+  position: relative;
+  z-index: 1;
+  padding: 0 20px;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  justify-content: flex-start;
+}
+
+.menu-button {
+  background: rgba(255, 255, 255, 0.2) !important;
+  color: white !important;
+  border-radius: 12px !important;
+  width: 48px !important;
+  height: 48px !important;
+  transition: all 0.3s ease !important;
+  backdrop-filter: blur(10px) !important;
+}
+
+.menu-button:hover {
+  background: rgba(255, 255, 255, 0.3) !important;
+  transform: scale(1.05);
+}
+
+.roadmap-title {
+  flex-grow: 1;
+  font-weight: 700 !important;
+  font-size: 2.5rem !important;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  margin: 0 !important;
+}
+
+.roadmap-main-content {
+  width: 100%;
+  padding: 40px 0;
+}
+
+/* Stepper Styling */
+.roadmap-stepper {
+  background: white;
+  padding: 40px 40px;
+  margin: 0 20px 40px 20px;
+  border-radius: 12px;
+  border: 1px solid #e0e0e0;
+}
+
+.roadmap-stepper .MuiStepLabel-root {
+  cursor: pointer !important;
+}
+
+.roadmap-stepper .MuiStepIcon-root {
+  color: rgba(160, 20, 65, 0.4) !important;
+  font-size: 1.5rem !important;
+}
+
+.roadmap-stepper .MuiStepIcon-root.Mui-active {
+  color: #a01441 !important;
+}
+
+.roadmap-stepper .MuiStepIcon-root.Mui-completed {
+  color: #2e7d32 !important;
+}
+
+.roadmap-stepper .MuiStepLabel-label {
+  font-weight: 500 !important;
+  font-size: 1rem !important;
+  color: #333 !important;
+}
+
+.roadmap-stepper .MuiStepLabel-label.Mui-active {
+  color: #a01441 !important;
+  font-weight: 600 !important;
+}
+
+/* Material-UI Component Font Overrides */
+.roadmap-details-container .MuiTypography-root {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Helvetica Neue', Arial, sans-serif !important;
+}
+
+.roadmap-details-container .MuiStepLabel-label {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Helvetica Neue', Arial, sans-serif !important;
+}
+
+/* Drawer Styling */
+.milestone-drawer {
+  background: rgba(255, 255, 255, 0.95) !important;
+  backdrop-filter: blur(10px) !important;
+}
+
+.milestone-drawer-content {
+  width: 380px;
+  padding: 30px;
+  background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+  height: 100%;
+  overflow-y: auto;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Helvetica Neue', Arial, sans-serif;
+}
+
+.milestone-header {
+  background: linear-gradient(135deg, #a01441 0%, #c8185a 100%);
+  color: white;
+  padding: 20px;
+  margin: -30px -30px 30px -30px;
+  border-radius: 0 0 20px 20px;
+  text-align: center;
+  position: relative;
+}
+
+.milestone-header h2 {
+  margin: 0;
+  font-weight: 700;
+  font-size: 1.4rem;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+.topics-list {
+  padding: 0 !important;
+}
+
+.topic-item {
+  background: white !important;
+  border-radius: 12px !important;
+  margin-bottom: 12px !important;
+  border: 2px solid transparent !important;
+  transition: all 0.3s ease !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1) !important;
+  position: relative !important;
+  overflow: hidden !important;
+}
+
+.topic-item::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 4px;
+  height: 100%;
+  background: linear-gradient(135deg, #a01441 0%, #c8185a 100%);
+  transform: scaleY(0);
+  transition: transform 0.3s ease;
+}
+
+.topic-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(160, 20, 65, 0.2) !important;
+  border-color: rgba(160, 20, 65, 0.3) !important;
+}
+
+.topic-item:hover::before {
+  transform: scaleY(1);
+}
+
+.topic-item.visited {
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%) !important;
+  border-color: rgba(160, 20, 65, 0.2) !important;
+}
+
+.topic-item.visited::before {
+  transform: scaleY(1);
+}
+
+.topic-item.completed {
+  background: linear-gradient(135deg, #e8f5e8 0%, #d4ecd4 100%) !important;
+  border-color: rgba(46, 125, 50, 0.3) !important;
+}
+
+.topic-item.completed::before {
+  background: linear-gradient(135deg, #2e7d32 0%, #4caf50 100%);
+  transform: scaleY(1);
+}
+
+.topic-item.disabled {
+  background: #f5f5f5 !important;
+  border-color: #e0e0e0 !important;
+  opacity: 0.6;
+  cursor: not-allowed !important;
+}
+
+.topic-item.disabled::before {
+  background: #ccc;
+  transform: scaleY(1);
+}
+
+.topic-item.disabled:hover {
+  transform: none !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1) !important;
+}
+
+.topic-title {
+  font-weight: 600 !important;
+  color: #333 !important;
+  font-size: 1rem !important;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Helvetica Neue', Arial, sans-serif;
+}
+
+.topic-icon {
+  background: linear-gradient(135deg, #a01441 0%, #c8185a 100%);
+  color: white;
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8rem;
+  font-weight: bold;
+  transition: all 0.3s ease;
+}
+
+.topic-icon.completed {
+  background: linear-gradient(135deg, #2e7d32 0%, #4caf50 100%);
+  font-size: 0.9rem;
+}
+
+.topic-icon.disabled {
+  background: #ccc;
+  color: #666;
+}
+
+.lock-icon {
+  margin-left: auto;
+  font-size: 0.9rem;
+  opacity: 0.7;
+}
+
+/* Progress Bar */
+.milestone-progress {
+  margin-top: 24px !important;
+  background: rgba(160, 20, 65, 0.1) !important;
+  border-radius: 8px !important;
+  height: 8px !important;
+}
+
+.milestone-progress .MuiLinearProgress-bar {
+  background: linear-gradient(90deg, #a01441 0%, #c8185a 100%) !important;
+  border-radius: 8px !important;
+}
+
+/* Complete Milestone Button */
+.complete-milestone-btn {
+  background: linear-gradient(135deg, #2e7d32 0%, #4caf50 100%) !important;
+  color: white !important;
+  border: none !important;
+  border-radius: 12px !important;
+  padding: 12px 24px !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+  transition: all 0.3s ease !important;
+  box-shadow: 0 4px 16px rgba(46, 125, 50, 0.3) !important;
+  width: 100% !important;
+  font-size: 1rem !important;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Helvetica Neue', Arial, sans-serif !important;
+}
+
+.complete-milestone-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(46, 125, 50, 0.4) !important;
+}
+
+/* Topic Explanation Section */
+.topic-explanation-container {
+  background: white;
+  border-radius: 20px;
+  padding: 30px 20px;
+  box-shadow: 0 8px 32px rgba(160, 20, 65, 0.1);
+  border: 1px solid rgba(160, 20, 65, 0.1);
+  margin: 0 20px;
+  position: relative;
+  overflow: hidden;
+}
+
+.topic-explanation-container::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, #a01441 0%, #c8185a 100%);
+}
+
+.topic-explanation-header {
+  background: linear-gradient(135deg, rgba(160, 20, 65, 0.1) 0%, rgba(200, 24, 90, 0.1) 100%);
+  color: #a01441;
+  padding: 20px;
+  margin: -30px -20px 30px -20px;
+  border-radius: 0 0 20px 20px;
+  border: 1px solid rgba(160, 20, 65, 0.2);
+}
+
+.topic-explanation-header h3 {
+  margin: 0;
+  font-weight: 700;
+  font-size: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.explanation-content {
+  max-height: 60vh;
+  overflow-y: auto;
+  padding-right: 8px;
+}
+
+.explanation-content::-webkit-scrollbar {
+  width: 6px;
+}
+
+.explanation-content::-webkit-scrollbar-track {
+  background: rgba(160, 20, 65, 0.1);
+  border-radius: 3px;
+}
+
+.explanation-content::-webkit-scrollbar-thumb {
+  background: linear-gradient(135deg, #a01441 0%, #c8185a 100%);
+  border-radius: 3px;
+}
+
+/* Markdown Content Styling */
+.explanation-content {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Helvetica Neue', Arial, sans-serif;
+}
+
+.explanation-content h1,
+.explanation-content h2,
+.explanation-content h3 {
+  color: #a01441;
+  font-weight: 600;
+  margin-top: 24px;
+  margin-bottom: 12px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Helvetica Neue', Arial, sans-serif;
+}
+
+.explanation-content p {
+  line-height: 1.7;
+  margin-bottom: 16px;
+  color: #333;
+  font-size: 15px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Helvetica Neue', Arial, sans-serif;
+}
+
+.explanation-content code {
+  background: rgba(160, 20, 65, 0.1);
+  color: #a01441;
+  padding: 3px 6px;
+  border-radius: 4px;
+  font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', 'Source Code Pro', 'Menlo', 'Consolas', monospace;
+  font-size: 14px;
+}
+
+.explanation-content pre {
+  background: #f8f9fa;
+  border: 1px solid rgba(160, 20, 65, 0.2);
+  border-radius: 8px;
+  padding: 16px;
+  overflow-x: auto;
+  font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', 'Source Code Pro', 'Menlo', 'Consolas', monospace;
+}
+
+.explanation-content ul,
+.explanation-content ol {
+  padding-left: 24px;
+  margin-bottom: 16px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Helvetica Neue', Arial, sans-serif;
+}
+
+.explanation-content li {
+  margin-bottom: 8px;
+  line-height: 1.6;
+  color: #333;
+  font-size: 15px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Helvetica Neue', Arial, sans-serif;
+}
+
+/* Milestone Completion Message */
+.milestone-completion-message {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: white;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 24px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  z-index: 1300;
+  max-width: 400px;
+  width: 90%;
+  text-align: center;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Helvetica Neue', Arial, sans-serif;
+}
+
+.close-message-btn {
+  background: #2e7d32;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 10px 20px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Helvetica Neue', Arial, sans-serif;
+}
+
+.close-message-btn:hover {
+  background: #1b5e20;
+}
+
+/* Loading States */
+.loading-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 50vh;
+}
+
+.loading-spinner {
+  color: #a01441 !important;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .roadmap-header-content {
+    padding: 0 15px;
+    gap: 15px;
+  }
+  
+  .roadmap-title {
+    font-size: 1.8rem !important;
+  }
+  
+  .roadmap-main-content {
+    padding: 20px 0;
+  }
+  
+  .roadmap-stepper {
+    padding: 30px 20px;
+    margin: 0 15px 30px 15px;
+  }
+  
+  .milestone-drawer-content {
+    width: 320px;
+    padding: 20px;
+  }
+  
+  .topic-explanation-container {
+    padding: 20px 15px;
+    margin: 0 15px;
+  }
+  
+  .topic-explanation-header {
+    margin: -20px -15px 20px -15px;
+  }
+  
+  .milestone-completion-message {
+    max-width: 350px;
+    padding: 20px;
+  }
+  
+  /* Topic Completion Speed Dial Mobile */
+  .MuiSpeedDial-root {
+    bottom: 20px !important;
+    right: 20px !important;
+  }
+}
+
+/* Animation Classes */
+@keyframes slideInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.slide-in-left {
+  animation: slideInLeft 0.5s ease-out;
+}
+
+.fade-in-up {
+  animation: fadeInUp 0.5s ease-out;
+}
