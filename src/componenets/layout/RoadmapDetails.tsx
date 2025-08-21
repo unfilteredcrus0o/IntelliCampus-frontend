@@ -12,7 +12,7 @@ import {
 } from "@mui/material";
 import { useParams } from "react-router-dom";
 import ReactMarkdown from "react-markdown";
-import { ROADMAP_ENDPOINTS } from "../../constants";
+import { ROADMAP_ENDPOINTS, PROGRESS_ENDPOINTS } from "../../constants";
 import { Stepper, Step, StepLabel } from "@mui/material";
 import { IconButton } from "@mui/material";
 import { makeAuthenticatedRequest } from "../../utils/api";
@@ -39,6 +39,7 @@ const RoadmapDetails = () => {
   const [activeMilestone, setActiveMilestone] = useState<any>(null);
   const [showSpeedDial, setShowSpeedDial] = useState(false);
   const [showTopicCompletionDial, setShowTopicCompletionDial] = useState(false);
+  const [isUpdatingProgress, setIsUpdatingProgress] = useState(false);
 
   useEffect(() => {
     const fetchRoadmap = async () => {
@@ -99,10 +100,46 @@ const RoadmapDetails = () => {
     }
   };
 
-  const handleTopicCompletion = () => {
-    if (activeTopicId) {
+  const handleTopicCompletion = async () => {
+    if (!activeTopicId || isUpdatingProgress) return;
+
+    setIsUpdatingProgress(true);
+
+    try {
+      // Make API call to update topic progress
+      const response = await makeAuthenticatedRequest(PROGRESS_ENDPOINTS.UPDATE, {
+        method: "POST",
+        body: {
+          topic_id: activeTopicId,
+          status: "completed"
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log("Progress updated successfully:", data);
+        
+        // Update local state
+        setCompletedTopics((prev) => new Set(prev).add(activeTopicId));
+        setShowTopicCompletionDial(false);
+        
+        // Log progress information for debugging
+        if (data.roadmap_progress) {
+          console.log(`Progress: ${data.roadmap_progress.completed_topics}/${data.roadmap_progress.total_topics} topics completed (${data.roadmap_progress.progress_percentage}%)`);
+        }
+      } else {
+        console.error("Failed to update progress:", response.status);
+        // Still update local state for better UX even if API fails
+        setCompletedTopics((prev) => new Set(prev).add(activeTopicId));
+        setShowTopicCompletionDial(false);
+      }
+    } catch (error) {
+      console.error("Error updating topic progress:", error);
+      // Still update local state for better UX even if API fails
       setCompletedTopics((prev) => new Set(prev).add(activeTopicId));
       setShowTopicCompletionDial(false);
+    } finally {
+      setIsUpdatingProgress(false);
     }
   };
 
@@ -218,7 +255,7 @@ const RoadmapDetails = () => {
           <div className="topic-explanation-container fade-in-up">
             <div className="topic-explanation-header">
               <Typography variant="h4" component="h3">
-                📖 Topic Explanation
+                Topic Explanation
               </Typography>
             </div>
             <div className="explanation-content">
@@ -245,15 +282,22 @@ const RoadmapDetails = () => {
               bottom: 32, 
               right: 32,
               '& .MuiSpeedDial-fab': {
-                backgroundColor: '#2e7d32',
+                backgroundColor: isUpdatingProgress ? '#666' : '#2e7d32',
                 color: 'white',
+                cursor: isUpdatingProgress ? 'not-allowed' : 'pointer',
                 '&:hover': {
-                  backgroundColor: '#1b5e20',
+                  backgroundColor: isUpdatingProgress ? '#666' : '#1b5e20',
                 },
               }
             }}
-            icon={<span style={{ fontSize: "24px" }}>✓</span>}
-            onClick={handleTopicCompletion}
+            icon={
+              isUpdatingProgress ? (
+                <CircularProgress size={20} color="inherit" />
+              ) : (
+                <span style={{ fontSize: "24px" }}>✓</span>
+              )
+            }
+            onClick={isUpdatingProgress ? undefined : handleTopicCompletion}
             open={false}
           />
         )}
@@ -271,7 +315,7 @@ const RoadmapDetails = () => {
             <>
               <div className="milestone-header">
                 <Typography variant="h5" component="h2">
-                  📚 {activeMilestone.name}
+                   {activeMilestone.name}
                 </Typography>
               </div>
 
