@@ -75,7 +75,10 @@ const NavTabs: React.FC = () => {
           value={currentTab === -1 ? false : currentTab}
           onChange={handleChange}
           textColor="inherit"
-          indicatorColor="secondary"
+          TabIndicatorProps={{
+            style: { display: 'none' }
+          }}
+          className="navbar-tabs"
         >
           {tabs.map((tab, index) => (
             <Tab key={index} label={tab.label} />

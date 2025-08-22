@@ -85,7 +85,7 @@ const RoadmapScreen: React.FC = () => {
 
     const value = parseInt(raw, 10);
 
-    if (value > 1000) {
+    if (value > 168) {
       setToastOpen(true);
       return;
     }
@@ -136,25 +136,28 @@ const RoadmapScreen: React.FC = () => {
                     />
                   )}
                   renderTags={(value, getTagProps) =>
-                    value.map((option, index) => (
-                      <Chip
-                        key={option}
-                        label={option}
-                        {...getTagProps({ index })}
-                        sx={{
-                          background: "linear-gradient(135deg, #a01441 0%, #c8185a 100%)",
-                          color: "white",
-                          borderRadius: "16px",
-                          fontWeight: 600,
-                          "& .MuiChip-deleteIcon": {
-                            color: "rgba(255, 255, 255, 0.8)",
-                            "&:hover": {
-                              color: "white",
+                    value.map((option, index) => {
+                      const { key, ...tagProps } = getTagProps({ index });
+                      return (
+                        <Chip
+                          key={key}
+                          label={option}
+                          {...tagProps}
+                          sx={{
+                            background: "linear-gradient(135deg, #a01441 0%, #c8185a 100%)",
+                            color: "white",
+                            borderRadius: "16px",
+                            fontWeight: 600,
+                            "& .MuiChip-deleteIcon": {
+                              color: "rgba(255, 255, 255, 0.8)",
+                              "&:hover": {
+                                color: "white",
+                              },
                             },
-                          },
-                        }}
-                      />
-                    ))
+                          }}
+                        />
+                      );
+                    })
                   }
                 />
               </Box>
@@ -199,7 +202,7 @@ const RoadmapScreen: React.FC = () => {
                     type="number"
                     value={hours === "" ? "" : Number(hours)}
                     onChange={handleHoursChange}
-                    inputProps={{ min: 0, max: 1000 }}
+                    inputProps={{ min: 0, max: 168 }}
                     fullWidth
                     helperText="Hours per week"
                   />
@@ -255,7 +258,7 @@ const RoadmapScreen: React.FC = () => {
               onClose={() => setToastOpen(false)}
               sx={{ width: "100%" }}
             >
-              Please limit the time to less than 1000 hours for efficient learning.
+              Please limit the time to less than 168 hours for efficient learning.
             </Alert>
           </Snackbar>
         </Paper>
