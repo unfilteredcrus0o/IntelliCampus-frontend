@@ -1,5 +1,24 @@
 .navbar-appbar {
   background-color: #a01441 !important;
+  border-bottom: 3px solid rgba(255, 255, 255, 0.2) !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15), 0 1px 3px rgba(0, 0, 0, 0.1) !important;
+  position: relative !important;
+}
+
+.navbar-appbar::after {
+  content: '';
+  position: absolute;
+  bottom: -3px;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, 
+    transparent 0%, 
+    rgba(255, 255, 255, 0.3) 25%, 
+    rgba(255, 255, 255, 0.5) 50%, 
+    rgba(255, 255, 255, 0.3) 75%, 
+    transparent 100%
+  ) !important;
 }
 
 .navbar-logo {
@@ -11,6 +30,45 @@
 
 .navbar-logo:hover {
   opacity: 0.8;
+}
+
+.navbar-tabs .MuiTab-root {
+  color: rgba(255, 255, 255, 0.8) !important;
+  font-weight: 500 !important;
+  font-family: 'Inter', sans-serif !important;
+  font-size: 0.85rem !important;
+  text-transform: none !important;
+  margin: 0 4px !important;
+  border-radius: 8px !important;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  position: relative !important;
+  min-height: 42px !important;
+  padding: 8px 16px !important;
+}
+
+.navbar-tabs .MuiTab-root:hover {
+  color: white !important;
+  background-color: rgba(255, 255, 255, 0.1) !important;
+  transform: translateY(-1px) !important;
+}
+
+.navbar-tabs .MuiTab-root.Mui-selected {
+  color: white !important;
+  background-color: rgba(255, 255, 255, 0.15) !important;
+  font-weight: 600 !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2) !important;
+}
+
+.navbar-tabs .MuiTab-root.Mui-selected::before {
+  content: '';
+  position: absolute;
+  top: -2px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 24px;
+  height: 2px;
+  background-color: white;
+  border-radius: 1px;
 }
 
 .navbar-avatar-container {
@@ -33,7 +91,7 @@
   color: #a01441 !important;
   font-weight: bold !important;
   font-size: 1.1rem !important;
-  font-family: 'Times New Roman', serif !important;
+  font-family: 'Inter', sans-serif !important;
   box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important;
   border: 2px solid rgba(255,255,255,0.2) !important;
 }
