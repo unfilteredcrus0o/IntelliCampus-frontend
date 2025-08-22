@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import {
   Typography,
   CircularProgress,
@@ -21,6 +21,7 @@ import "./RoadmapDetails.css";
 const RoadmapDetails = () => {
   const { roadmapId } = useParams<{ roadmapId: string }>();
   const [roadmap, setRoadmap] = useState<any>(null);
+  const [rawRoadmapData, setRawRoadmapData] = useState<any>(null); // Store raw API response
   const [loading, setLoading] = useState(true);
   const [selectedTopicExplanation, setSelectedTopicExplanation] = useState<
     string | null
@@ -36,22 +37,97 @@ const RoadmapDetails = () => {
     new Set()
   );
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const [activeMilestone, setActiveMilestone] = useState<any>(null);
+  const [activeMilestoneId, setActiveMilestoneId] = useState<string | null>(null); // Store only ID, not object
   const [showSpeedDial, setShowSpeedDial] = useState(false);
   const [showTopicCompletionDial, setShowTopicCompletionDial] = useState(false);
   const [isUpdatingProgress, setIsUpdatingProgress] = useState(false);
+  const [realtimeTopicStatus, setRealtimeTopicStatus] = useState<{[key: string]: string}>({}); // Real-time status updates
+
+  // Store original API structure for order preservation
+  const originalStructure = useMemo(() => {
+    if (!rawRoadmapData) return null;
+    return JSON.parse(JSON.stringify(rawRoadmapData));
+  }, [rawRoadmapData]);
+
+  // Utility functions for original structure access
+  const getOriginalMilestones = (): any[] => {
+    return originalStructure?.milestones || [];
+  };
+
+  const getOriginalMilestoneById = (milestoneId: string): any => {
+    return getOriginalMilestones().find((m: any) => m.id === milestoneId) || null;
+  };
+
+  const getOriginalTopicsForMilestone = (milestoneId: string): any[] => {
+    const milestone = getOriginalMilestoneById(milestoneId);
+    return milestone?.topics || [];
+  };
+
+  const getCurrentActiveMilestone = (): any => {
+    return activeMilestoneId ? getOriginalMilestoneById(activeMilestoneId) : null;
+  };
+
+  const findTopicInOriginalStructure = (topicId: string): any => {
+    if (!originalStructure?.milestones) return null;
+    
+    for (const milestone of originalStructure.milestones) {
+      if (milestone.topics) {
+        const topic = milestone.topics.find((t: any) => t.id === topicId);
+        if (topic) return topic;
+      }
+    }
+    return null;
+  };
+
+  const getCurrentTopicStatus = (topicId: string): string => {
+    if (realtimeTopicStatus[topicId]) {
+      return realtimeTopicStatus[topicId];
+    }
+    const originalTopic = findTopicInOriginalStructure(topicId);
+    return originalTopic?.progress?.status || 'not_started';
+  };
+
+  const updateRealtimeTopicStatus = (topicId: string, status: string) => {
+    setRealtimeTopicStatus(prev => ({
+      ...prev,
+      [topicId]: status
+    }));
+  };
+
+  const getEnhancedTopicsForMilestone = (milestoneId: string): any[] => {
+    const originalTopics = getOriginalTopicsForMilestone(milestoneId);
+    return originalTopics.map(topic => ({
+      ...topic,
+      progress: {
+        ...topic.progress,
+        status: getCurrentTopicStatus(topic.id)
+      }
+    }));
+  };
 
   useEffect(() => {
-    const fetchRoadmap = async () => {
+    const fetchRoadmapWithProgress = async () => {
       try {
-        console.log('Fetching roadmap with ID:', roadmapId);
-        const response = await makeAuthenticatedRequest(ROADMAP_ENDPOINTS.GET_BY_ID(roadmapId));
-        
-        if (!response.ok) {
-          throw new Error(`Failed to fetch roadmap: ${response.status}`);
+        const roadmapResponse = await makeAuthenticatedRequest(ROADMAP_ENDPOINTS.GET_BY_ID(roadmapId));
+        if (!roadmapResponse.ok) {
+          throw new Error(`Failed to fetch roadmap: ${roadmapResponse.status}`);
         }
-        const data = await response.json();
-        setRoadmap(data);
+        const roadmapData = await roadmapResponse.json();
+        
+        setRawRoadmapData(roadmapData);
+        setRoadmap(roadmapData);
+
+        // Extract completed milestones
+        const completedMilestoneIds = new Set<string>();
+        if (roadmapData.milestones) {
+          roadmapData.milestones.forEach((milestone: any) => {
+            if (milestone.progress?.status === 'completed') {
+              completedMilestoneIds.add(milestone.id);
+            }
+          });
+        }
+        setCompletedMilestones(completedMilestoneIds);
+        
       } catch (error) {
         console.error("Error fetching roadmap:", error);
       } finally {
@@ -59,21 +135,51 @@ const RoadmapDetails = () => {
       }
     };
 
-    if (roadmapId) fetchRoadmap();
+    if (roadmapId) fetchRoadmapWithProgress();
   }, [roadmapId]);
+
+  useEffect(() => {
+    if (originalStructure) {
+      autoNavigateToNextTopic();
+    }
+  }, [originalStructure]);
 
   const handleTopicClick = async (topicId: string) => {
     setActiveTopicId(topicId);
     setVisitedTopics((prev) => new Set(prev).add(topicId));
 
+    // Check if explanation is already cached
     if (explanationCache[topicId]) {
       setSelectedTopicExplanation(explanationCache[topicId]);
-      // Show completion dial if topic is not already completed
-      if (!completedTopics.has(topicId)) {
+      
+      // Show completion dial based on current status (real-time + frozen)
+      const currentStatus = getCurrentTopicStatus(topicId);
+      if (currentStatus !== 'completed') {
         setShowTopicCompletionDial(true);
       } else {
         setShowTopicCompletionDial(false);
       }
+      return;
+    }
+
+    // Check if topic already has explanation in original structure
+    let embeddedExplanation = null;
+    if (originalStructure?.milestones) {
+      for (const milestone of originalStructure.milestones) {
+        const topic = milestone.topics?.find((t: any) => t.id === topicId);
+        if (topic && topic.explanation_md) {
+          embeddedExplanation = topic.explanation_md;
+          break;
+        }
+      }
+    }
+
+    if (embeddedExplanation) {
+      setExplanationCache((prev) => ({ ...prev, [topicId]: embeddedExplanation }));
+      setSelectedTopicExplanation(embeddedExplanation);
+      
+      const currentStatus = getCurrentTopicStatus(topicId);
+      setShowTopicCompletionDial(currentStatus !== 'completed');
       return;
     }
 
@@ -86,12 +192,8 @@ const RoadmapDetails = () => {
       setExplanationCache((prev) => ({ ...prev, [topicId]: data.explanation }));
       setSelectedTopicExplanation(data.explanation);
       
-      // Show completion dial if topic is not already completed
-      if (!completedTopics.has(topicId)) {
-        setShowTopicCompletionDial(true);
-      } else {
-        setShowTopicCompletionDial(false);
-      }
+      const currentStatus = getCurrentTopicStatus(topicId);
+      setShowTopicCompletionDial(currentStatus !== 'completed');
     } catch (error) {
       console.error("Failed to fetch topic explanation:", error);
       setSelectedTopicExplanation("Error loading explanation.");
@@ -106,7 +208,6 @@ const RoadmapDetails = () => {
     setIsUpdatingProgress(true);
 
     try {
-      // Make API call to update topic progress
       const response = await makeAuthenticatedRequest(PROGRESS_ENDPOINTS.UPDATE, {
         method: "POST",
         body: {
@@ -116,68 +217,81 @@ const RoadmapDetails = () => {
       });
 
       if (response.ok) {
-        const data = await response.json();
-        console.log("Progress updated successfully:", data);
-        
-        // Update local state
-        setCompletedTopics((prev) => new Set(prev).add(activeTopicId));
+        updateRealtimeTopicStatus(activeTopicId, 'completed');
         setShowTopicCompletionDial(false);
-        
-        // Log progress information for debugging
-        if (data.roadmap_progress) {
-          console.log(`Progress: ${data.roadmap_progress.completed_topics}/${data.roadmap_progress.total_topics} topics completed (${data.roadmap_progress.progress_percentage}%)`);
-        }
       } else {
-        console.error("Failed to update progress:", response.status);
-        // Still update local state for better UX even if API fails
-        setCompletedTopics((prev) => new Set(prev).add(activeTopicId));
+        updateRealtimeTopicStatus(activeTopicId, 'completed');
         setShowTopicCompletionDial(false);
       }
     } catch (error) {
-      console.error("Error updating topic progress:", error);
-      // Still update local state for better UX even if API fails
-      setCompletedTopics((prev) => new Set(prev).add(activeTopicId));
+      updateRealtimeTopicStatus(activeTopicId, 'completed');
       setShowTopicCompletionDial(false);
     } finally {
       setIsUpdatingProgress(false);
     }
   };
 
-  const isTopicUnlocked = (milestone: any, topicIndex: number): boolean => {
-    if (topicIndex === 0) return true; // First topic is always unlocked
+  const autoNavigateToNextTopic = () => {
+    if (!originalStructure?.milestones?.length) return;
+
+    for (const milestone of originalStructure.milestones) {
+      if (!milestone.topics?.length) continue;
+      
+      for (let topicIndex = 0; topicIndex < milestone.topics.length; topicIndex++) {
+        const topic = milestone.topics[topicIndex];
+        const topicStatus = topic.progress?.status || 'not_started';
+        
+        const isCompleted = topicStatus === 'completed';
+        const isNotStarted = topicStatus === 'not_started';
+        const isInProgress = topicStatus === 'in_progress';
+        const isUnlocked = isCompleted || topicIndex === 0 || milestone.topics[topicIndex - 1].progress?.status === 'completed';
+        
+        if (isInProgress) {
+          setActiveMilestoneId(milestone.id);
+          setDrawerOpen(true);
+          setTimeout(() => handleTopicClick(topic.id), 500);
+          return;
+        }
+        
+        if (isNotStarted && isUnlocked) {
+          setActiveMilestoneId(milestone.id);
+          setDrawerOpen(true);
+          setTimeout(() => handleTopicClick(topic.id), 500);
+          return;
+        }
+      }
+    }
     
-    // Check if previous topic is completed
-    const previousTopic = milestone.topics[topicIndex - 1];
-    return completedTopics.has(previousTopic.id);
+    const firstMilestone = originalStructure.milestones[0];
+    if (firstMilestone?.topics?.length > 0) {
+      const firstTopic = firstMilestone.topics[0];
+      setActiveMilestoneId(firstMilestone.id);
+      setDrawerOpen(true);
+      setTimeout(() => handleTopicClick(firstTopic.id), 500);
+    }
   };
 
   const handleContinueLearning = () => {
-    // Close the completion message
     setShowSpeedDial(false);
-    
-    // Clear any active topic explanation and completion dial
     setActiveTopicId(null);
     setSelectedTopicExplanation(null);
     setShowTopicCompletionDial(false);
     
-    // Find the next uncompleted milestone
-    const currentMilestoneIndex = roadmap.milestones.findIndex(
-      (m: any) => m.id === activeMilestone?.id
+    const originalMilestones = getOriginalMilestones();
+    const currentMilestoneIndex = originalMilestones.findIndex(
+      (m: any) => m.id === activeMilestoneId
     );
     
-    // Look for the next milestone that isn't completed
-    const nextMilestone = roadmap.milestones.find((milestone: any, index: number) => {
+    const nextMilestone = originalMilestones.find((milestone: any, index: number) => {
       return index > currentMilestoneIndex && !completedMilestones.has(milestone.id);
     });
     
     if (nextMilestone) {
-      // Set the next milestone as active and open the drawer
-      setActiveMilestone(nextMilestone);
+      setActiveMilestoneId(nextMilestone.id);
       setDrawerOpen(true);
     } else {
-      // All milestones completed or no next milestone, close drawer
       setDrawerOpen(false);
-      setActiveMilestone(null);
+      setActiveMilestoneId(null);
     }
   };
 
@@ -209,22 +323,21 @@ const RoadmapDetails = () => {
         </div>
       </div>
 
-      {/* Main Content */}
       <div className="roadmap-main-content">
-        {/* Stepper Section */}
         <div className="roadmap-stepper fade-in-up">
           <Stepper
-            activeStep={roadmap.milestones.findIndex(
-              (m) => m.id === activeMilestone?.id
+            activeStep={getOriginalMilestones().findIndex(
+              (m) => m.id === activeMilestoneId
             )}
             alternativeLabel
             className="roadmap-stepper"
           >
-            {roadmap.milestones.map((milestone: any, index: number) => {
+            {getOriginalMilestones().map((milestone: any, index: number) => {
               const isFirst = index === 0;
+              const originalMilestones = getOriginalMilestones();
               const isUnlocked =
                 isFirst ||
-                completedMilestones.has(roadmap.milestones[index - 1]?.id);
+                completedMilestones.has(originalMilestones[index - 1]?.id);
               return (
                 <Step
                   key={milestone.id}
@@ -233,7 +346,7 @@ const RoadmapDetails = () => {
                   <StepLabel
                     onClick={() => {
                       if (isUnlocked) {
-                        setActiveMilestone(milestone);
+                        setActiveMilestoneId(milestone.id);
                         setDrawerOpen(true);
                       }
                     }}
@@ -303,7 +416,6 @@ const RoadmapDetails = () => {
         )}
       </div>
 
-      {/* Milestone Drawer */}
       <Drawer
         anchor="left"
         open={drawerOpen}
@@ -311,118 +423,139 @@ const RoadmapDetails = () => {
         className="milestone-drawer"
       >
         <div className="milestone-drawer-content slide-in-left">
-          {activeMilestone && (
-            <>
-              <div className="milestone-header">
-                <Typography variant="h5" component="h2">
-                   {activeMilestone.name}
-                </Typography>
-              </div>
-
-                                <List className="topics-list">
-                    {activeMilestone.topics?.map((topic: any, index: number) => {
-                      const isUnlocked = isTopicUnlocked(activeMilestone, index);
-                      const isCompleted = completedTopics.has(topic.id);
-                      const isVisited = visitedTopics.has(topic.id);
-                      
-                      return (
-                        <ListItem
-                          key={topic.id}
-                          component="button"
-                          onClick={() => {
-                            if (isUnlocked) {
-                              handleTopicClick(topic.id);
-                              setDrawerOpen(false);
-                            }
-                          }}
-                          className={`topic-item ${isCompleted ? 'completed' : isVisited ? 'visited' : ''} ${!isUnlocked ? 'disabled' : ''}`}
-                          disabled={!isUnlocked}
-                        >
-                          <Typography variant="subtitle1" className="topic-title">
-                            <span className={`topic-icon ${isCompleted ? 'completed' : !isUnlocked ? 'disabled' : ''}`}>
-                              {isCompleted ? '✓' : index + 1}
-                            </span>
-                            {topic.name}
-                            {!isUnlocked && <span className="lock-icon">🔒</span>}
-                          </Typography>
-                        </ListItem>
-                      );
-                    })}
-                  </List>
-
-                                {/* Progress Bar */}
-                  <LinearProgress
-                    variant="determinate"
-                    value={
-                      (activeMilestone.topics.filter((t: any) =>
-                        completedTopics.has(t.id)
-                      ).length /
-                        activeMilestone.topics.length) *
-                      100
-                    }
-                    className="milestone-progress"
-                  />
-
-                  <Box sx={{ mt: 1, textAlign: "center" }}>
-                    <Typography variant="body2" color="text.secondary">
-                      Progress: {activeMilestone.topics.filter((t: any) =>
-                        completedTopics.has(t.id)
-                      ).length} / {activeMilestone.topics.length} topics completed
-                    </Typography>
-                  </Box>
-
-                  {/* Complete Milestone Button */}
-                  {activeMilestone.topics.every((topic: any) =>
-                    completedTopics.has(topic.id)
-                  ) &&
-                    !completedMilestones.has(activeMilestone.id) && (
-                      <Box sx={{ mt: 3, textAlign: "center" }}>
-                        <button
-                          className="complete-milestone-btn"
-                          onClick={() => {
-                            setCompletedMilestones((prev) =>
-                              new Set(prev).add(activeMilestone.id)
-                            );
-                            setShowSpeedDial(true);
-                          }}
-                        >
-                          ✅ Complete Milestone
-                        </button>
-                      </Box>
-                    )}
-            </>
-          )}
-        </div>
-      </Drawer>
-
-      {/* Milestone Completion Message */}
-      {showSpeedDial && (
-        <div className="milestone-completion-message">
-          <Typography variant="h6" sx={{ fontWeight: 600, color: '#2e7d32', mb: 1 }}>
-            Milestone Completed!
-          </Typography>
-          <Typography variant="body1" sx={{ color: '#333', mb: 2 }}>
-            Congratulations! You have successfully completed "{activeMilestone?.name}".
-          </Typography>
-          {(() => {
-            const currentMilestoneIndex = roadmap.milestones.findIndex(
-              (m: any) => m.id === activeMilestone?.id
-            );
-            const hasNextMilestone = roadmap.milestones.find((milestone: any, index: number) => {
-              return index > currentMilestoneIndex && !completedMilestones.has(milestone.id);
-            });
+          {activeMilestoneId && (() => {
+            // Get current active milestone from original structure using ID
+            const currentActiveMilestone = getCurrentActiveMilestone();
+            // Get enhanced topics with real-time status updates while preserving order!
+            const enhancedTopics = getEnhancedTopicsForMilestone(activeMilestoneId);
+            
+            if (!currentActiveMilestone) {
+              return <Typography>Error loading milestone</Typography>;
+            }
             
             return (
-              <button 
-                className="close-message-btn"
-                onClick={handleContinueLearning}
-              >
-                {hasNextMilestone ? 'Continue to Next Milestone' : 'View Roadmap'}
-              </button>
+              <>
+                <div className="milestone-header">
+                  <Typography variant="h5" component="h2">
+                     {currentActiveMilestone.name}
+                  </Typography>
+                </div>
+
+                <List className="topics-list">
+                  {enhancedTopics.map((enhancedTopic: any, index: number) => {
+                    const currentStatus = enhancedTopic.progress?.status || 'not_started';
+                    const isCompleted = currentStatus === 'completed';
+                    const isInProgress = currentStatus === 'in_progress';
+                    const isNotStarted = currentStatus === 'not_started';
+                    const isUnlocked = isCompleted || index === 0 || enhancedTopics[index - 1].progress?.status === 'completed';
+                    
+                    const isVisited = visitedTopics.has(enhancedTopic.id);
+                    
+                    return (
+                      <ListItem
+                        key={enhancedTopic.id}
+                        component="button"
+                        onClick={() => {
+                          if (isUnlocked) {
+                            handleTopicClick(enhancedTopic.id);
+                            setDrawerOpen(false);
+                          }
+                        }}
+                        className={`topic-item ${isCompleted ? 'completed' : isVisited ? 'visited' : ''} ${!isUnlocked ? 'disabled' : ''}`}
+                        disabled={!isUnlocked}
+                      >
+                        <Typography variant="subtitle1" className="topic-title">
+                          <span className={`topic-icon ${isCompleted ? 'completed' : !isUnlocked ? 'disabled' : ''}`}>
+                            {isCompleted ? '✓' : isInProgress ? '▶' : index + 1}
+                          </span>
+                          {enhancedTopic.name}
+                          {!isCompleted && !isUnlocked && <span className="lock-icon">🔒</span>}
+                        </Typography>
+                      </ListItem>
+                    );
+                  })}
+                </List>
+
+                {(() => {
+                  const completedCount = enhancedTopics.filter((t: any) => t.progress?.status === 'completed').length;
+                  const progressPercentage = (completedCount / enhancedTopics.length) * 100;
+                  
+                  return (
+                    <>
+                      <LinearProgress
+                        variant="determinate"
+                        value={progressPercentage}
+                        className="milestone-progress"
+                      />
+
+                      <Box sx={{ mt: 1, textAlign: "center" }}>
+                        <Typography variant="body2" color="text.secondary">
+                          Progress: {completedCount} / {enhancedTopics.length} topics completed
+                        </Typography>
+                      </Box>
+                    </>
+                  );
+                })()}
+
+                {(() => {
+                  const allTopicsCompleted = enhancedTopics.every((topic: any) => topic.progress?.status === 'completed');
+                  const milestoneAlreadyCompleted = currentActiveMilestone.progress?.status === 'completed';
+                  
+                  return allTopicsCompleted && !milestoneAlreadyCompleted && (
+                    <Box sx={{ mt: 3, textAlign: "center" }}>
+                      <button
+                        className="complete-milestone-btn"
+                        onClick={() => {
+                          setCompletedMilestones((prev) =>
+                            new Set(prev).add(currentActiveMilestone.id)
+                          );
+                          setShowSpeedDial(true);
+                        }}
+                      >
+                        ✅ Complete Milestone
+                      </button>
+                    </Box>
+                  );
+                })()}
+              </>
             );
           })()}
         </div>
-      )}
+      </Drawer>
+
+      {showSpeedDial && activeMilestoneId && (() => {
+        const currentActiveMilestone = getCurrentActiveMilestone();
+        
+        return (
+          <div className="milestone-completion-message">
+            <Typography variant="h6" sx={{ fontWeight: 600, color: '#2e7d32', mb: 1 }}>
+              Milestone Completed!
+            </Typography>
+            <Typography variant="body1" sx={{ color: '#333', mb: 2 }}>
+              Congratulations! You have successfully completed "{currentActiveMilestone?.name}".
+            </Typography>
+            {(() => {
+              // Use original structure to check for next milestone
+              const originalMilestones = getOriginalMilestones();
+              const currentMilestoneIndex = originalMilestones.findIndex(
+                (m: any) => m.id === activeMilestoneId
+              );
+              const hasNextMilestone = originalMilestones.find((milestone: any, index: number) => {
+                return index > currentMilestoneIndex && !completedMilestones.has(milestone.id);
+              });
+              
+              return (
+                <button 
+                  className="close-message-btn"
+                  onClick={handleContinueLearning}
+                >
+                  {hasNextMilestone ? 'Continue to Next Milestone' : 'View Roadmap'}
+                </button>
+              );
+            })()}
+          </div>
+        );
+      })()}
     </div>
   );
 };

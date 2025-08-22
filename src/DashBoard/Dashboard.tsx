@@ -197,7 +197,7 @@ const Dashboard: React.FC = () => {
                       variant="contained"
                       onClick={(e) => {
                         e.stopPropagation();
-                        navigate("/roadmap", { state: { enrollment } });
+                        navigate(`/roadmap/${enrollment.id}`);
                       }}
                       sx={{
                         position: "absolute",
