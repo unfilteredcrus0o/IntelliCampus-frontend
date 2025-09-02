@@ -51,6 +51,7 @@ const RoadmapScreen: React.FC = () => {
       selectedTopics,
       skillLevel,
       duration: formattedDuration,
+      title: `${selectedTopics.join(", ")} Learning Roadmap`,
     };
     try {
       const response = await makeAuthenticatedRequest(ROADMAP_ENDPOINTS.CREATE, {
@@ -59,7 +60,7 @@ const RoadmapScreen: React.FC = () => {
       });
 
       const data = await response.json();
-      if (data.roadmap_id && data.status === "ready") {
+      if (data.roadmap_id) {
         navigate(`/roadmap/${data.roadmap_id}`);
       } else {
         console.error("Unexpected response:", data);

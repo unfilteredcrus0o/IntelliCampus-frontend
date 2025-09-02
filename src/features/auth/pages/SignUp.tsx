@@ -1,14 +1,17 @@
-import { TextField, Button, Typography, Box, Link, CircularProgress} from "@mui/material";
+import { TextField, Button, Typography, Box, Link, CircularProgress, Select, MenuItem, FormControl, InputLabel} from "@mui/material";
 import axios from "axios";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "./SignUp.css";
 
 const SignUpPage: React.FC = () => {
+  const [userId, setUserId] = useState("");
   const [name, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [role, setRole] = useState("");
+  const [managerId, setManagerId] = useState("");
   const [loading, setLoading] = useState(false); 
   const [errorMessage, setErrorMessage] = useState(""); 
   const navigate = useNavigate();
@@ -18,13 +21,37 @@ const SignUpPage: React.FC = () => {
     e.preventDefault();
     setLoading(true);
     setErrorMessage("");
+
+    // Basic validation
+    if (password !== confirmPassword) {
+      setErrorMessage("Passwords do not match.");
+      setLoading(false);
+      return;
+    }
+
+    if (!userId || !name || !email || !password || !role) {
+      setErrorMessage("Please fill in all required fields.");
+      setLoading(false);
+      return;
+    }
+
+    if (role === "employee" && !managerId) {
+      setErrorMessage("Manager ID is required for employees.");
+      setLoading(false);
+      return;
+    }
+
     try {
-      const res = await axios.post(`${API_BASE_URL}/auth/register`, {
+      const payload = {
+        user_id: userId,
         name,
         email,
         password,
-        confirmPassword,
-      });
+        role,
+        ...(role === "employee" && { manager_id: managerId }),
+      };
+
+      const res = await axios.post(`${API_BASE_URL}/auth/register`, payload);
       console.log("Register success:", res.data);
 
       navigate("/login");
@@ -51,11 +78,20 @@ const SignUpPage: React.FC = () => {
 
         <Box component="form" onSubmit={handleSubmit} className="signup-form">
           <TextField
+            label="User ID"
+            fullWidth
+            value={userId}
+            onChange={(e) => setUserId(e.target.value)}
+            className="signup-userid-field"
+            required
+          />
+          <TextField
             label="Full Name"
             fullWidth
             value={name}
             onChange={(e) => setFullName(e.target.value)}
             className="signup-name-field"
+            required
           />
           <TextField
             label="Email"
@@ -64,6 +100,7 @@ const SignUpPage: React.FC = () => {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             className="signup-email-field"
+            required
           />
           <TextField
             label="Password"
@@ -72,6 +109,7 @@ const SignUpPage: React.FC = () => {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             className="signup-password-field"
+            required
           />
           <TextField
             label="Confirm Password"
@@ -80,7 +118,36 @@ const SignUpPage: React.FC = () => {
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
             className="signup-confirm-password-field"
+            required
           />
+          <FormControl fullWidth className="signup-role-field" required>
+            <InputLabel>Role</InputLabel>
+            <Select
+              value={role}
+              label="Role"
+              onChange={(e) => {
+                setRole(e.target.value);
+                // Clear manager_id when role changes to non-employee
+                if (e.target.value !== "employee") {
+                  setManagerId("");
+                }
+              }}
+            >
+              <MenuItem value="employee">Employee</MenuItem>
+              <MenuItem value="manager">Manager</MenuItem>
+              <MenuItem value="superadmin">Super Admin</MenuItem>
+            </Select>
+          </FormControl>
+          {role === "employee" && (
+            <TextField
+              label="Manager ID"
+              fullWidth
+              value={managerId}
+              onChange={(e) => setManagerId(e.target.value)}
+              className="signup-managerid-field"
+              required
+            />
+          )}
 
           <Button
             variant="contained"

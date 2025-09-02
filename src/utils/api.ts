@@ -70,7 +70,51 @@ export const isAuthenticated = (): boolean => {
  * Get current user data from sessionStorage
  * @returns User object or null
  */
-export const getCurrentUser = (): { name: string; email: string } | null => {
+export const getCurrentUser = (): { name: string; email: string; role?: string } | null => {
   const userData = sessionStorage.getItem('user');
   return userData ? JSON.parse(userData) : null;
+};
+
+/**
+ * Get current user role from sessionStorage
+ * @returns User role string or null
+ */
+export const getCurrentUserRole = (): string | null => {
+  const userData = sessionStorage.getItem('user');
+  if (userData) {
+    const user = JSON.parse(userData);
+    return user.role || null;
+  }
+  return null;
+};
+
+/**
+ * Fetch and store user profile information including role
+ * @returns Promise<boolean> - success status
+ */
+export const fetchAndStoreUserProfile = async (): Promise<boolean> => {
+  try {
+    const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+    const response = await makeAuthenticatedRequest(`${API_BASE_URL}/auth/user`, { method: 'GET' });
+    
+    if (response.ok) {
+      const userProfile = await response.json();
+      
+      // Update user data in sessionStorage with role information
+      const existingUser = getCurrentUser();
+      const updatedUser = {
+        ...existingUser,
+        name: userProfile.name,
+        email: userProfile.email,
+        role: userProfile.role
+      };
+      
+      sessionStorage.setItem('user', JSON.stringify(updatedUser));
+      return true;
+    }
+    return false;
+  } catch (error) {
+    console.error('Failed to fetch user profile:', error);
+    return false;
+  }
 };

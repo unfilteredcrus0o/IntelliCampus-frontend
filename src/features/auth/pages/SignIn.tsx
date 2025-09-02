@@ -2,6 +2,7 @@ import { TextField, Button, Typography, Box, Link, CircularProgress} from "@mui/
 import axios from "axios";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { fetchAndStoreUserProfile } from "../../../utils/api";
 import "./SignIn.css";
 
 const SignInPage: React.FC = () => {
@@ -33,7 +34,16 @@ const SignInPage: React.FC = () => {
       sessionStorage.setItem("user", JSON.stringify({ name: userName, email }));
       sessionStorage.setItem("isAuthenticated", "true");
 
-      navigate("/"); 
+      // Fetch user profile including role
+      const profileFetched = await fetchAndStoreUserProfile();
+      
+      if (profileFetched) {
+        // Navigate to dashboard to trigger role-based routing
+        navigate("/dashboard");
+      } else {
+        // Fallback to home if profile fetch fails
+        navigate("/");
+      } 
     } catch (err: any) {
       console.error("Login error:", err);
       setErrorMessage(
