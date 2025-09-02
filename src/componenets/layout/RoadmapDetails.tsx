@@ -224,10 +224,9 @@ const RoadmapDetails = () => {
     setIsUpdatingProgress(true);
 
     try {
-      const response = await makeAuthenticatedRequest(PROGRESS_ENDPOINTS.UPDATE, {
-        method: "POST",
+      const response = await makeAuthenticatedRequest(PROGRESS_ENDPOINTS.UPDATE_TOPIC(activeTopicId), {
+        method: "PUT",
         body: {
-          topic_id: activeTopicId,
           status: "completed"
         },
       });

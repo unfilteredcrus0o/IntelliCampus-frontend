@@ -13,7 +13,7 @@ export const ROADMAP_ENDPOINTS = {
 
 // Progress Endpoints
 export const PROGRESS_ENDPOINTS = {
-  UPDATE: `${API_BASE_URL}/progress/update`,
+  UPDATE_TOPIC: (topicId: string) => `${API_BASE_URL}/topic/${topicId}/progress`,
   GET_BY_ROADMAP: (roadmapId: string) => `${API_BASE_URL}/progress/roadmap/${roadmapId}`,
 };
 

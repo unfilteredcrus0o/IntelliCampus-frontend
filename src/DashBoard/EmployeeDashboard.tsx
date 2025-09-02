@@ -24,7 +24,7 @@ interface Enrollment {
   progress_percentage?: number;
 }
 
-const Dashboard: React.FC = () => {
+const EmployeeDashboard: React.FC = () => {
   const [enrollments, setEnrollments] = useState<Enrollment[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -60,12 +60,6 @@ const Dashboard: React.FC = () => {
       default:
         return "linear-gradient(135deg, #9e9e9e 0%, #bdbdbd 100%)";
     }
-  };
-
-  const getProgressColor = (progress: number) => {
-    if (progress >= 1 && progress <= 35) return "#f44336"; // Red
-    if (progress > 35 && progress <= 50) return "#2196f3"; // Blue
-    return "#4caf50"; // Green
   };
 
   const getButtonLabel = (status: string) => {
@@ -167,7 +161,7 @@ const Dashboard: React.FC = () => {
               color: "#333"
             }}
           >
-            Your Enrollments
+            Employee Dashboard - Your Learning Progress
           </Typography>
 
           {loading ? (
@@ -180,11 +174,11 @@ const Dashboard: React.FC = () => {
             </Typography>
           ) : !enrollments || enrollments.length === 0 ? (
             <Typography align="center" color="text.secondary" mt={6}>
-              No enrollments found.
+              No enrollments found. Contact your manager to get enrolled in courses.
             </Typography>
           ) : (
             <Grid container spacing={3} justifyContent="center" sx={{ mt: 4 }}>
-              {enrollments.map((enrollment) => {
+                                {enrollments.map((enrollment) => {
                 const calculatedStatus = getStatusFromPercentage(enrollment.progress_percentage || 0);
                 return (
                 <Grid key={enrollment.roadmap_id} component="div">
@@ -334,4 +328,4 @@ const Dashboard: React.FC = () => {
   );
 };
 
-export default Dashboard;
+export default EmployeeDashboard;
