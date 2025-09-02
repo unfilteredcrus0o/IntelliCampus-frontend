@@ -96,13 +96,29 @@ const RoadmapDetails = () => {
 
   const getEnhancedTopicsForMilestone = (milestoneId: string): any[] => {
     const originalTopics = getOriginalTopicsForMilestone(milestoneId);
-    return originalTopics.map(topic => ({
+    
+    const enhancedTopics = originalTopics.map(topic => ({
       ...topic,
       progress: {
         ...topic.progress,
         status: getCurrentTopicStatus(topic.id)
       }
     }));
+    
+    // Sort topics: completed first, then in-progress, then not started
+    return enhancedTopics.sort((a, b) => {
+      const statusA = a.progress?.status || 'not_started';
+      const statusB = b.progress?.status || 'not_started';
+      
+      // Priority order: completed > in_progress > not_started
+      const statusPriority: { [key: string]: number } = {
+        'completed': 1,
+        'in_progress': 2,
+        'not_started': 3
+      };
+      
+      return (statusPriority[statusA] || 3) - (statusPriority[statusB] || 3);
+    });
   };
 
   useEffect(() => {
@@ -426,7 +442,7 @@ const RoadmapDetails = () => {
           {activeMilestoneId && (() => {
             // Get current active milestone from original structure using ID
             const currentActiveMilestone = getCurrentActiveMilestone();
-            // Get enhanced topics with real-time status updates while preserving order!
+            // Get enhanced topics with real-time status updates and sorted by completion
             const enhancedTopics = getEnhancedTopicsForMilestone(activeMilestoneId);
             
             if (!currentActiveMilestone) {
