@@ -8,10 +8,11 @@ import {
   CircularProgress,
   Button,
   Tooltip,
+  Chip,
 } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import { makeAuthenticatedRequest } from "../utils/api";
-import { ROADMAP_ENDPOINTS } from "../constants";
+import { ROADMAP_ENDPOINTS, ASSIGNMENT_ENDPOINTS } from "../constants";
 
 interface Enrollment {
   roadmap_id: string;
@@ -22,15 +23,32 @@ interface Enrollment {
   title?: string;
   status?: string;
   progress_percentage?: number;
+  is_assigned?: boolean;
+  assigned_by?: string;
+  assigner_name?: string;
+  due_date?: string;
+}
+
+interface Assignment {
+  assignment_id: string;
+  roadmap_id: string;
+  roadmap_title: string;
+  assigned_by: string;
+  assigner_name: string;
+  due_date?: string;
+  assigned_at: string;
+  status: string;
 }
 
 const EmployeeDashboard: React.FC = () => {
   const [enrollments, setEnrollments] = useState<Enrollment[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [enrollingRoadmapId, setEnrollingRoadmapId] = useState<string | null>(null);
   const navigate = useNavigate();
 
-  const getStatusFromPercentage = (percentage: number): string => {
+  const getStatusFromPercentage = (percentage: number, isAssigned: boolean): string => {
+    if (isAssigned && percentage === 0) return "assigned";
     if (percentage === 0) return "ready";
     if (percentage === 100) return "completed";
     return "in progress";
@@ -38,6 +56,8 @@ const EmployeeDashboard: React.FC = () => {
 
   const getStatusColor = (status: string) => {
     switch (status.toLowerCase()) {
+      case "assigned":
+        return "#ff9800"; // Orange for assigned
       case "ready":
         return "darkgrey";
       case "completed":
@@ -51,6 +71,8 @@ const EmployeeDashboard: React.FC = () => {
 
   const getCardBackground = (status: string) => {
     switch (status.toLowerCase()) {
+      case "assigned":
+        return "linear-gradient(135deg, #ff9800 0%, #ffb74d 100%)"; // Orange gradient for assigned
       case "ready":
         return "linear-gradient(135deg, #696969 0%, #808080 100%)";
       case "completed":
@@ -64,6 +86,8 @@ const EmployeeDashboard: React.FC = () => {
 
   const getButtonLabel = (status: string) => {
     switch (status.toLowerCase()) {
+      case "assigned":
+        return "Start Assigned Course";
       case "completed":
         return "Revisit Course";
       case "in progress":
@@ -75,67 +99,138 @@ const EmployeeDashboard: React.FC = () => {
     }
   };
 
-  useEffect(() => {
-    const fetchEnrollments = async () => {
-      setLoading(true);
-      setError(null);
+  const handleCourseClick = async (enrollment: Enrollment) => {
+    // If it's an assigned course that hasn't been started, enroll first
+    if (enrollment.status === 'assigned' && enrollment.progress_percentage === 0) {
+      setEnrollingRoadmapId(enrollment.roadmap_id);
       try {
-        // Fetch basic enrollment data
         const response = await makeAuthenticatedRequest(
-          ROADMAP_ENDPOINTS.ENROLLEMENTS,
-          { method: "GET" }
+          ROADMAP_ENDPOINTS.ENROLL(enrollment.roadmap_id),
+          { method: "POST" }
         );
-        const enrollmentData = await response.json();
-
-        let enrollmentList: any[] = [];
-        if (Array.isArray(enrollmentData)) {
-          enrollmentList = enrollmentData;
-        } else if (Array.isArray(enrollmentData?.data)) {
-          enrollmentList = enrollmentData.data;
+        
+        if (response.ok) {
+          const enrollmentResult = await response.json();
+          console.log("Successfully enrolled:", enrollmentResult);
+          // Refresh the dashboard data to show updated status
+          fetchDashboardData();
         } else {
-          setEnrollments([]);
-          return;
+          const errorData = await response.json();
+          console.error("Enrollment failed:", errorData);
+          setError(errorData.detail || "Failed to enroll in course");
         }
-
-        // Fetch additional details for each enrollment
-        const enrichedEnrollments = await Promise.all(
-          enrollmentList.map(async (enrollment) => {
-            try {
-              const roadmapResponse = await makeAuthenticatedRequest(
-                ROADMAP_ENDPOINTS.GET_BY_ID(enrollment.roadmap_id),
-                { method: "GET" }
-              );
-              const roadmapData = await roadmapResponse.json();
-
-              return {
-                ...enrollment,
-                title: roadmapData.title || "Unknown Course",
-                status: roadmapData.status || "ready",
-                progress_percentage: roadmapData.progress?.progress_percentage || 0,
-              };
-            } catch (err) {
-              console.error(`Failed to fetch details for roadmap ${enrollment.roadmap_id}:`, err);
-              return {
-                ...enrollment,
-                title: "Unknown Course",
-                status: "ready",
-                progress_percentage: 0,
-              };
-            }
-          })
-        );
-
-        setEnrollments(enrichedEnrollments);
       } catch (err: any) {
-        console.error(err);
-        setError(err.message || "Failed to fetch enrollments");
-        setEnrollments([]);
+        console.error("Error enrolling in course:", err);
+        setError(err.message || "Failed to enroll in course");
       } finally {
-        setLoading(false);
+        setEnrollingRoadmapId(null);
       }
-    };
+    }
+    
+    // Navigate to the roadmap
+    navigate(`/roadmap/${enrollment.roadmap_id}`);
+  };
 
-    fetchEnrollments();
+  const fetchDashboardData = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      // Fetch both enrollments and assignments in parallel
+      const [enrollmentResponse, assignmentResponse] = await Promise.all([
+        makeAuthenticatedRequest(ROADMAP_ENDPOINTS.ENROLLEMENTS, { method: "GET" }),
+        makeAuthenticatedRequest(ASSIGNMENT_ENDPOINTS.GET_MY_ASSIGNMENTS, { method: "GET" })
+      ]);
+
+      const enrollmentData = await enrollmentResponse.json();
+      const assignmentData = await assignmentResponse.json();
+
+      let enrollmentList: any[] = [];
+      if (Array.isArray(enrollmentData)) {
+        enrollmentList = enrollmentData;
+      } else if (Array.isArray(enrollmentData?.data)) {
+        enrollmentList = enrollmentData.data;
+      }
+
+      let assignmentList: Assignment[] = [];
+      if (assignmentData?.assignments && Array.isArray(assignmentData.assignments)) {
+        assignmentList = assignmentData.assignments;
+      }
+
+      // Create a map of enrolled roadmap IDs for quick lookup
+      const enrolledRoadmapIds = new Set(enrollmentList.map(e => e.roadmap_id));
+
+      // Merge assignments with enrollments, marking assigned but not enrolled courses
+      const combinedCourses = [...enrollmentList];
+
+      // Add assignments that are not yet enrolled
+      for (const assignment of assignmentList) {
+        if (!enrolledRoadmapIds.has(assignment.roadmap_id)) {
+          combinedCourses.push({
+            roadmap_id: assignment.roadmap_id,
+            user_id: '', // Current user - not needed from assignment
+            enrolled_at: assignment.assigned_at,
+            total_topics: 0, // Will be fetched below
+            is_assigned: true,
+            assigned_by: assignment.assigned_by,
+            assigner_name: assignment.assigner_name,
+            due_date: assignment.due_date,
+            title: assignment.roadmap_title,
+            status: 'assigned',
+            progress_percentage: 0
+          });
+        } else {
+          // Mark existing enrollments as also being assigned
+          const existingIndex = combinedCourses.findIndex(e => e.roadmap_id === assignment.roadmap_id);
+          if (existingIndex !== -1) {
+            combinedCourses[existingIndex].is_assigned = true;
+            combinedCourses[existingIndex].assigned_by = assignment.assigned_by;
+            combinedCourses[existingIndex].assigner_name = assignment.assigner_name;
+            combinedCourses[existingIndex].due_date = assignment.due_date;
+          }
+        }
+      }
+
+      // Fetch additional details for each course
+      const enrichedCourses = await Promise.all(
+        combinedCourses.map(async (course) => {
+          try {
+            const roadmapResponse = await makeAuthenticatedRequest(
+              ROADMAP_ENDPOINTS.GET_BY_ID(course.roadmap_id),
+              { method: "GET" }
+            );
+            const roadmapData = await roadmapResponse.json();
+
+            return {
+              ...course,
+              title: roadmapData.title || course.title || "Unknown Course",
+              status: course.status === 'assigned' ? 'assigned' : (roadmapData.status || "ready"),
+              progress_percentage: roadmapData.progress?.progress_percentage || course.progress_percentage || 0,
+              total_topics: roadmapData.total_topics || course.total_topics || 0
+            };
+          } catch (err) {
+            console.error(`Failed to fetch details for roadmap ${course.roadmap_id}:`, err);
+            return {
+              ...course,
+              title: course.title || "Unknown Course",
+              status: course.status || "ready",
+              progress_percentage: course.progress_percentage || 0,
+            };
+          }
+        })
+      );
+
+      setEnrollments(enrichedCourses);
+    } catch (err: any) {
+      console.error(err);
+      setError(err.message || "Failed to fetch dashboard data");
+      setEnrollments([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchDashboardData();
   }, []);
 
   return (
@@ -174,12 +269,13 @@ const EmployeeDashboard: React.FC = () => {
             </Typography>
           ) : !enrollments || enrollments.length === 0 ? (
             <Typography align="center" color="text.secondary" mt={6}>
-              No enrollments found. Contact your manager to get enrolled in courses.
+              No courses or assignments found. Contact your manager to get assigned to courses.
             </Typography>
           ) : (
             <Grid container spacing={3} justifyContent="center" sx={{ mt: 4 }}>
                                 {enrollments.map((enrollment) => {
-                const calculatedStatus = getStatusFromPercentage(enrollment.progress_percentage || 0);
+                const calculatedStatus = enrollment.status === 'assigned' ? 'assigned' : 
+                  getStatusFromPercentage(enrollment.progress_percentage || 0, enrollment.is_assigned || false);
                 return (
                 <Grid key={enrollment.roadmap_id} component="div">
                   <Card
@@ -239,6 +335,26 @@ const EmployeeDashboard: React.FC = () => {
                       />
                     </Tooltip>
 
+                    {enrollment.is_assigned && (
+                      <Chip
+                        label="Assigned"
+                        size="small"
+                        sx={{
+                          position: "absolute",
+                          top: 8,
+                          left: 8,
+                          backgroundColor: "rgba(255,255,255,0.9)",
+                          color: "#ff9800",
+                          fontWeight: 600,
+                          fontSize: "0.7rem",
+                          height: 20,
+                          "& .MuiChip-label": {
+                            px: 1,
+                          },
+                        }}
+                      />
+                    )}
+
                     <Box sx={{ p: 2, pt: 3 }}>
                       <Typography
                         variant="body2"
@@ -278,18 +394,39 @@ const EmployeeDashboard: React.FC = () => {
                           fontSize: "0.7rem",
                           opacity: 0.7,
                           fontWeight: 400,
+                          mb: enrollment.is_assigned ? 0.5 : 0,
                         }}
                       >
                         Progress: {enrollment.progress_percentage || 0}%
                       </Typography>
+                      
+                      {enrollment.is_assigned && (
+                        <Typography
+                          variant="body2"
+                          sx={{
+                            fontSize: "0.65rem",
+                            opacity: 0.8,
+                            fontWeight: 500,
+                            fontStyle: "italic",
+                          }}
+                        >
+                          Assigned by: {enrollment.assigner_name}
+                          {enrollment.due_date && (
+                            <span style={{ display: "block" }}>
+                              Due: {new Date(enrollment.due_date).toLocaleDateString()}
+                            </span>
+                          )}
+                        </Typography>
+                      )}
                     </Box>
 
                     <Button
                       className="continue-btn"
                       variant="contained"
+                      disabled={enrollingRoadmapId === enrollment.roadmap_id}
                       onClick={(e) => {
                         e.stopPropagation();
-                        navigate(`/roadmap/${enrollment.roadmap_id}`);
+                        handleCourseClick(enrollment);
                       }}
                       sx={{
                         position: "absolute",
@@ -314,7 +451,14 @@ const EmployeeDashboard: React.FC = () => {
                         },
                       }}
                     >
-                      {getButtonLabel(calculatedStatus)}
+                      {enrollingRoadmapId === enrollment.roadmap_id ? (
+                        <>
+                          <CircularProgress size={16} sx={{ mr: 1, color: "inherit" }} />
+                          Enrolling...
+                        </>
+                      ) : (
+                        getButtonLabel(calculatedStatus)
+                      )}
                     </Button>
                   </Card>
                 </Grid>
