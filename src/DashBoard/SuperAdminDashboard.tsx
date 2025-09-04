@@ -26,7 +26,7 @@ import {
 
 import { useNavigate } from "react-router-dom";
 import { makeAuthenticatedRequest } from "../utils/api";
-import { ROADMAP_ENDPOINTS } from "../constants";
+import { ROADMAP_ENDPOINTS, SUPER_ADMIN } from "../constants";
 
 interface Enrollment {
   id: string;
@@ -61,6 +61,7 @@ const SuperAdminDashboard: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [tabValue, setTabValue] = useState(0);
   const navigate = useNavigate();
+  const currentUser = sessionStorage.getItem('user') ? JSON.parse(sessionStorage.getItem('user')) : {};
 
   const getStatusFromPercentage = (percentage: number): string => {
     if (percentage === 0) return "ready";
@@ -81,94 +82,80 @@ const SuperAdminDashboard: React.FC = () => {
     }
   };
 
-  useEffect(() => {
+ useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
       setError(null);
       try {
-        // Fetch admin's own enrollments
-        const enrollmentResponse = await makeAuthenticatedRequest(
-          ROADMAP_ENDPOINTS.ENROLLEMENTS,
-          { method: "GET" }
-        );
-        const enrollmentData = await enrollmentResponse.json();
-
-        if (Array.isArray(enrollmentData)) {
-          setEnrollments(enrollmentData);
-        } else if (Array.isArray(enrollmentData?.data)) {
-          setEnrollments(enrollmentData.data);
-        } else {
-          setEnrollments([]);
-        }
-
-        // TODO: These would require new API endpoints
-        // For now, using mock data
-        setSystemStats({
-          total_users: 156,
-          total_courses: 24,
-          total_enrollments: 342,
-          avg_completion_rate: 67.5,
-          active_learners: 89
-        });
-
-        setUsers([
-          {
-            id: "mgr1",
-            name: "Alice Johnson",
-            email: "alice.johnson@company.com",
-            role: "manager",
-            enrollments_count: 5,
-            avg_progress: 78.2
-          },
-          {
-            id: "mgr2",
-            name: "Bob Wilson",
-            email: "bob.wilson@company.com", 
-            role: "manager",
-            enrollments_count: 3,
-            avg_progress: 85.6
-          },
-          {
-            id: "emp1",
-            name: "Carol Davis",
-            email: "carol.davis@company.com",
-            role: "employee",
-            manager_id: "mgr1",
-            enrollments_count: 2,
-            avg_progress: 45.3
-          },
-          {
-            id: "emp2",
-            name: "David Brown",
-            email: "david.brown@company.com",
-            role: "employee", 
-            manager_id: "mgr1",
-            enrollments_count: 4,
-            avg_progress: 92.1
-          },
-          {
-            id: "emp3",
-            name: "Eva Martinez",
-            email: "eva.martinez@company.com",
-            role: "employee",
-            manager_id: "mgr2",
-            enrollments_count: 1,
-            avg_progress: 12.5
-          }
+        // Fetch all users and all enrollments concurrently 🚀
+        const [usersResponse, enrollmentsResponse] = await Promise.all([
+          makeAuthenticatedRequest(SUPER_ADMIN.ALL_EMPLOYEES, { method: "GET" }),
+          makeAuthenticatedRequest(ROADMAP_ENDPOINTS.ENROLLEMENTS, { method: "GET" }),
         ]);
 
+        const rawUsers = await usersResponse.json();
+        const rawEnrollments = await enrollmentsResponse.json();
+        
+        const allUsers = Array.isArray(rawUsers) ? rawUsers : (Array.isArray(rawUsers?.data) ? rawUsers.data : []);
+        const allEnrollments = Array.isArray(rawEnrollments) ? rawEnrollments : (Array.isArray(rawEnrollments?.data) ? rawEnrollments.data : []);
+
+        // Group enrollments by user ID for easy lookup
+        const userEnrollmentsMap = new Map();
+        allEnrollments.forEach((enrollment) => {
+          if (!userEnrollmentsMap.has(enrollment.user_id)) {
+            userEnrollmentsMap.set(enrollment.user_id, []);
+          }
+          userEnrollmentsMap.get(enrollment.user_id).push(enrollment);
+        });
+
+        // Enrich user data with enrollment stats
+        const enrichedUsers = allUsers.map((user) => {
+          const userEnrollments = userEnrollmentsMap.get(user.id) || [];
+          const enrollments_count = userEnrollments.length;
+          const totalProgress = userEnrollments.reduce((sum, current) => sum + (current.progress_percentage || 0), 0);
+          const avg_progress = enrollments_count > 0 ? totalProgress / enrollments_count : 0;
+
+          return {
+            ...user,
+            enrollments_count,
+            avg_progress,
+          };
+        });
+
+        setUsers(enrichedUsers);
+        setEnrollments(allEnrollments.filter((e) => e.user_id === currentUser?.id));
+        
+        // Update system stats based on fetched data
+        const totalEnrollments = allEnrollments.length;
+        const totalUsers = allUsers.length;
+        const avgCompletionRate = totalEnrollments > 0 
+          ? allEnrollments.reduce((sum, e) => sum + (e.progress_percentage || 0), 0) / totalEnrollments
+          : 0;
+        
+        // This is a placeholder as you don't have a total courses API
+        const totalCourses = new Set(allEnrollments.map(e => e.roadmap_id)).size;
+
+        setSystemStats({
+          total_users: totalUsers,
+          total_courses: totalCourses,
+          total_enrollments: totalEnrollments,
+          avg_completion_rate: avgCompletionRate,
+          active_learners: new Set(allEnrollments.map(e => e.user_id)).size,
+        });
+
       } catch (err: any) {
-        console.error(err);
-        setError(err.message || "Failed to fetch data");
+        console.error("Dashboard data fetch failed:", err);
+        setError("Failed to load dashboard data. Please try again.");
         setEnrollments([]);
         setUsers([]);
+        setSystemStats(null);
       } finally {
         setLoading(false);
       }
     };
 
     fetchData();
-  }, []);
+  }, [currentUser?.id]);
 
   const SystemOverviewTab = () => (
     <Box>
@@ -236,84 +223,84 @@ const SuperAdminDashboard: React.FC = () => {
     </Box>
   );
 
-  const UserManagementTab = () => (
-    <Box>
-      <Box display="flex" justifyContent="space-between" alignItems="center" sx={{ mb: 3 }}>
-        <Typography variant="h6" sx={{ fontWeight: 600 }}>
-          User Management
-        </Typography>
-        <Button variant="contained">
-          Add New User
-        </Button>
-      </Box>
-
-      <TableContainer component={Paper} sx={{ borderRadius: 2 }}>
-        <Table>
-          <TableHead>
-            <TableRow sx={{ backgroundColor: "grey.50" }}>
-              <TableCell sx={{ fontWeight: 600 }}>User</TableCell>
-              <TableCell sx={{ fontWeight: 600 }}>Role</TableCell>
-              <TableCell sx={{ fontWeight: 600 }}>Enrollments</TableCell>
-              <TableCell sx={{ fontWeight: 600 }}>Avg Progress</TableCell>
-              <TableCell sx={{ fontWeight: 600 }}>Actions</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {users.map((user) => (
-              <TableRow key={user.id} sx={{ "&:hover": { backgroundColor: "grey.50" } }}>
-                <TableCell>
-                  <Box display="flex" alignItems="center">
-                    <Avatar sx={{ mr: 2, bgcolor: "primary.light" }}>
-                      {user.name.charAt(0)}
-                    </Avatar>
-                    <Box>
-                      <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                        {user.name}
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        {user.email}
-                      </Typography>
-                    </Box>
-                  </Box>
-                </TableCell>
-                <TableCell>
-                  <Chip 
-                    label={user.role.toUpperCase()} 
-                    size="small" 
-                    color={getRoleColor(user.role)}
-                    variant="outlined"
-                  />
-                </TableCell>
-                <TableCell>
-                  <Typography variant="body2">{user.enrollments_count} courses</Typography>
-                </TableCell>
-                <TableCell>
-                  <Box>
-                    <Typography variant="body2" sx={{ mb: 0.5 }}>
-                      {user.avg_progress.toFixed(1)}%
-                    </Typography>
-                    <LinearProgress 
-                      variant="determinate" 
-                      value={user.avg_progress} 
-                      sx={{ height: 4, borderRadius: 2 }}
-                    />
-                  </Box>
-                </TableCell>
-                <TableCell>
-                  <IconButton size="small" color="primary">
-                    Edit
-                  </IconButton>
-                  <IconButton size="small" color="error">
-                    Delete
-                  </IconButton>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </TableContainer>
+const UserManagementTab = () => (
+  <Box>
+    <Box display="flex" justifyContent="space-between" alignItems="center" sx={{ mb: 3 }}>
+      <Typography variant="h6" sx={{ fontWeight: 600 }}>
+        User Management
+      </Typography>
+      <Button variant="contained">
+        Add New User
+      </Button>
     </Box>
-  );
+
+    <TableContainer component={Paper} sx={{ borderRadius: 2 }}>
+      <Table>
+        <TableHead>
+          <TableRow sx={{ backgroundColor: "grey.50" }}>
+            <TableCell sx={{ fontWeight: 600 }}>User</TableCell>
+            <TableCell sx={{ fontWeight: 600 }}>Role</TableCell>
+            <TableCell sx={{ fontWeight: 600 }}>Enrollments</TableCell>
+            <TableCell sx={{ fontWeight: 600 }}>Avg Progress</TableCell>
+            <TableCell sx={{ fontWeight: 600 }}>Actions</TableCell>
+          </TableRow>
+        </TableHead>
+        <TableBody>
+          {users.map((user) => (
+            <TableRow key={user.id} sx={{ "&:hover": { backgroundColor: "grey.50" } }}>
+              <TableCell>
+                <Box display="flex" alignItems="center">
+                  <Avatar sx={{ mr: 2, bgcolor: "primary.light" }}>
+                    {user.name.charAt(0)}
+                  </Avatar>
+                  <Box>
+                    <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                      {user.name}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      {user.email}
+                    </Typography>
+                  </Box>
+                </Box>
+              </TableCell>
+              <TableCell>
+                <Chip 
+                  label={(user.role || 'unknown').toUpperCase()}
+                  size="small" 
+                  color={getRoleColor(user.role || 'unknown')}
+                  variant="outlined"
+                />
+              </TableCell>
+              <TableCell>
+                <Typography variant="body2">{user.enrollments_count} courses</Typography>
+              </TableCell>
+              <TableCell>
+                <Box>
+                  <Typography variant="body2" sx={{ mb: 0.5 }}>
+                    {user.avg_progress.toFixed(1)}%
+                  </Typography>
+                  <LinearProgress 
+                    variant="determinate" 
+                    value={user.avg_progress} 
+                    sx={{ height: 4, borderRadius: 2 }}
+                  />
+                </Box>
+              </TableCell>
+              <TableCell>
+                <IconButton size="small" color="primary">
+                  ✏️
+                </IconButton>
+                <IconButton size="small" color="error">
+                  🗑️
+                </IconButton>
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </TableContainer>
+  </Box>
+);
 
   const MyLearningTab = () => (
     <Box>

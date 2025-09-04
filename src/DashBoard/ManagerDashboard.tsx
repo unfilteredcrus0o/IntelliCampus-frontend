@@ -4,9 +4,7 @@ import {
   Card,
   CardContent,
   Typography,
-  Grid,
   CircularProgress,
-  Button,
   Tabs,
   Tab,
   List,
@@ -47,6 +45,7 @@ const ManagerDashboard: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [tabValue, setTabValue] = useState(0);
   const navigate = useNavigate();
+  const currentUser = sessionStorage.getItem('user') ? JSON.parse(sessionStorage.getItem('user')) : {};  
 
   const getStatusFromPercentage = (percentage: number): string => {
     if (percentage === 0) return "ready";
@@ -80,130 +79,111 @@ const ManagerDashboard: React.FC = () => {
     }
   };
 
-  useEffect(() => {
-    const fetchData = async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        // Fetch manager's own enrollments
-        const enrollmentResponse = await makeAuthenticatedRequest(
-          ROADMAP_ENDPOINTS.ENROLLEMENTS,
-          { method: "GET" }
-        );
-        const enrollmentData = await enrollmentResponse.json();
+useEffect(() => {
+  const fetchData = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const enrollmentResponse = await makeAuthenticatedRequest(
+        ROADMAP_ENDPOINTS.ENROLLEMENTS,
+        { method: "GET" }
+      );
+      
+      const allEnrollmentData = await enrollmentResponse.json();
+      console.log("All raw enrollment data:", allEnrollmentData);
 
-        let enrollmentList: any[] = [];
-        if (Array.isArray(enrollmentData)) {
-          enrollmentList = enrollmentData;
-        } else if (Array.isArray(enrollmentData?.data)) {
-          enrollmentList = enrollmentData.data;
-        } else {
-          setEnrollments([]);
-        }
+      const enrollmentsArray = Array.isArray(allEnrollmentData) 
+        ? allEnrollmentData 
+        : (Array.isArray(allEnrollmentData?.data) ? allEnrollmentData.data : []);
 
-        // Fetch additional details for each enrollment
-        const enrichedEnrollments = await Promise.all(
-          enrollmentList.map(async (enrollment) => {
-            try {
-              const roadmapResponse = await makeAuthenticatedRequest(
-                ROADMAP_ENDPOINTS.GET_BY_ID(enrollment.roadmap_id),
-                { method: "GET" }
-              );
-              const roadmapData = await roadmapResponse.json();
-
-              return {
-                ...enrollment,
-                title: roadmapData.title || "Unknown Course",
-                status: roadmapData.status || "ready",
-                progress_percentage: roadmapData.progress?.progress_percentage || 0,
-              };
-            } catch (err) {
-              console.error(`Failed to fetch details for roadmap ${enrollment.roadmap_id}:`, err);
-              return {
-                ...enrollment,
-                title: "Unknown Course",
-                status: "ready",
-                progress_percentage: 0,
-              };
-            }
-          })
-        );
-
-        setEnrollments(enrichedEnrollments);
-
-        // TODO: Fetch team members data - this would require a new API endpoint
-        // For now, we'll use mock data
-        setTeamMembers([
-          {
-            id: "emp1",
-            name: "John Doe",
-            email: "john.doe@company.com",
-            role: "employee",
-            enrollments: [
-              { 
-                id: "1", 
-                roadmap_id: "rm1", 
-                user_id: "emp1", 
-                enrolled_at: "2024-01-01", 
-                total_topics: 10,
-                title: "React Fundamentals", 
-                status: "in progress", 
-                progress_percentage: 45 
-              },
-              { 
-                id: "2", 
-                roadmap_id: "rm2", 
-                user_id: "emp1", 
-                enrolled_at: "2024-01-01", 
-                total_topics: 8,
-                title: "JavaScript Advanced", 
-                status: "completed", 
-                progress_percentage: 100 
-              }
-            ]
-          },
-          {
-            id: "emp2",
-            name: "Jane Smith",
-            email: "jane.smith@company.com",
-            role: "employee",
-            enrollments: [
-              { 
-                id: "3", 
-                roadmap_id: "rm3", 
-                user_id: "emp2", 
-                enrolled_at: "2024-01-01", 
-                total_topics: 12,
-                title: "Python Basics", 
-                status: "ready", 
-                progress_percentage: 0 
-              },
-              { 
-                id: "4", 
-                roadmap_id: "rm4", 
-                user_id: "emp2", 
-                enrolled_at: "2024-01-01", 
-                total_topics: 15,
-                title: "Data Structures", 
-                status: "in progress", 
-                progress_percentage: 75 
-              }
-            ]
-          }
-        ]);
-
-      } catch (err: any) {
-        console.error(err);
-        setError(err.message || "Failed to fetch data");
+      if (enrollmentsArray.length === 0) {
         setEnrollments([]);
         setTeamMembers([]);
-      } finally {
         setLoading(false);
+        return; 
       }
-    };
 
-    fetchData();
-  }, []);
+      // Group enrollments by user ID
+      const userEnrollmentsMap = new Map();
+      const uniqueRoadmapIds = new Set<string>();
+      
+      enrollmentsArray.forEach(enrollment => {
+        if (!userEnrollmentsMap.has(enrollment.user_id)) {
+          userEnrollmentsMap.set(enrollment.user_id, []);
+        }
+        userEnrollmentsMap.get(enrollment.user_id).push(enrollment);
+        uniqueRoadmapIds.add(enrollment.roadmap_id);
+      });
+
+      // Fetch ALL roadmap details in a single Promise.all call for efficiency
+      const roadmapDetailsPromises = Array.from(uniqueRoadmapIds).map(id => 
+        makeAuthenticatedRequest(ROADMAP_ENDPOINTS.GET_BY_ID(id), { method: "GET" })
+          .then(res => res.json())
+          .catch(err => {
+            console.error(`Failed to fetch roadmap details for ID ${id}:`, err);
+            return { id, error: true };
+          })
+      );
+
+      const allRoadmapDetails = await Promise.all(roadmapDetailsPromises);
+      const roadmapDetailsMap = new Map();
+      allRoadmapDetails.forEach(details => {
+        if (!details.error) {
+          roadmapDetailsMap.set(details.id, details);
+        }
+      });
+      console.log("Fetched roadmap details:", roadmapDetailsMap);
+
+      // Enrich enrollments with roadmap details and separate them
+      const myEnrichedEnrollments: Enrollment[] = [];
+      const teamMembersMap = new Map<string, TeamMember>();
+
+      userEnrollmentsMap.forEach((enrollmentsForUser, userId) => {
+        const enrichedEnrollments = enrollmentsForUser.map(enrollment => {
+          const roadmapDetails = roadmapDetailsMap.get(enrollment.roadmap_id);
+          const progressPercentage = roadmapDetails?.progress?.progress_percentage ?? enrollment.progress_percentage ?? 0;
+          
+          return {
+            ...enrollment,
+            title: roadmapDetails?.title || "Unknown Course",
+            status: getStatusFromPercentage(progressPercentage),
+            progress_percentage: progressPercentage,
+          };
+        });
+
+        if (userId === currentUser?.id) {
+          myEnrichedEnrollments.push(...enrichedEnrollments);
+        } else {
+          if (!teamMembersMap.has(userId)) {
+            teamMembersMap.set(userId, {
+              id: userId,
+              name: `${userId}`, 
+              email: `${userId}@gmail.com`, 
+              role: "employee", 
+              enrollments: []
+            });
+          }
+          const teamMember = teamMembersMap.get(userId)!;
+          teamMember.enrollments.push(...enrichedEnrollments);
+        }
+      });
+
+      setEnrollments(myEnrichedEnrollments);
+      setTeamMembers(Array.from(teamMembersMap.values()));
+      console.log(Array.from(teamMembersMap.values()))
+      
+    } catch (err: unknown) {
+      console.error("Dashboard data fetch failed:", err);
+      setError("Failed to load dashboard data. Please try again.");
+      setEnrollments([]);
+      setTeamMembers([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  fetchData();
+}, [currentUser?.id]);
 
   const MyEnrollmentsTab = () => (
     <Box>

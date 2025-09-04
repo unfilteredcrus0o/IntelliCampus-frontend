@@ -106,7 +106,8 @@ export const fetchAndStoreUserProfile = async (): Promise<boolean> => {
         ...existingUser,
         name: userProfile.name,
         email: userProfile.email,
-        role: userProfile.role
+        role: userProfile.role,
+        id: userProfile.id
       };
       
       sessionStorage.setItem('user', JSON.stringify(updatedUser));
