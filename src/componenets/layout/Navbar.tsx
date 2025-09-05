@@ -30,8 +30,7 @@ const NavTabs: React.FC = () => {
       ];
     } else {
       return [
-        { label: 'Login', path: '/login' },
-        { label: 'Sign Up', path: '/signup' }
+        { label: 'Login', path: '/login' }
       ];
     }
   };
