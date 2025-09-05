@@ -5,6 +5,7 @@ import './HomePage.css';
 
 const HomePage: React.FC = () => {
   const navigate = useNavigate();
+  const isUserAuthenticated = sessionStorage.getItem('isAuthenticated') ? JSON.parse(sessionStorage.getItem('isAuthenticated')) : false;
 
   return (
     <Box className="homepage-wrapper">
@@ -33,22 +34,22 @@ const HomePage: React.FC = () => {
         </Typography>
 
           <Box className="homepage-cta-buttons">
-            <Button
+            {/* <Button
               variant="contained"
               size="large"
               className="homepage-primary-btn"
               onClick={() => navigate('/signup')}
             >
               Start Learning Today
-            </Button>
-            <Button
+            </Button> */}
+           {!isUserAuthenticated ? <Button
               variant="outlined"
               size="large"
               className="homepage-secondary-btn"
               onClick={() => navigate('/login')}
             >
               Sign In
-            </Button>
+            </Button> : null }
           </Box>
       </Box>
       </Container>

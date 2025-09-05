@@ -114,15 +114,15 @@ const SignInPage: React.FC = () => {
           className="signin-bottom-text"
           sx={{ mt: 2 }}
         >
-          Don't have an account?{" "}
-          <Link
+          {/* Don't have an account?{" "} 
+           <Link
             component="button"
             variant="body2"
             onClick={() => navigate("/signup")}
             className="signin-signup-link"
           >
             Sign up here
-          </Link>
+          </Link> */}
         </Typography>
       </Box>
     </Box>
