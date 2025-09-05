@@ -5,12 +5,8 @@ import {
   CardContent,
   Typography,
   CircularProgress,
-  Button,
   Tabs,
   Tab,
-  List,
-  ListItem,
-  ListItemText,
   LinearProgress,
   Chip,
   Table,
@@ -21,7 +17,6 @@ import {
   TableRow,
   Paper,
   Avatar,
-  IconButton,
 } from "@mui/material";
 
 import { useNavigate } from "react-router-dom";
@@ -96,7 +91,8 @@ const SuperAdminDashboard: React.FC = () => {
         const rawUsers = await usersResponse.json();
         const rawEnrollments = await enrollmentsResponse.json();
         
-        const allUsers = Array.isArray(rawUsers) ? rawUsers : (Array.isArray(rawUsers?.data) ? rawUsers.data : []);
+        
+        const allUsers = Array.isArray(rawUsers) ? rawUsers : (Array.isArray(rawUsers?.users) ? rawUsers.users : []);
         const allEnrollments = Array.isArray(rawEnrollments) ? rawEnrollments : (Array.isArray(rawEnrollments?.data) ? rawEnrollments.data : []);
 
         // Group enrollments by user ID for easy lookup
@@ -115,8 +111,14 @@ const SuperAdminDashboard: React.FC = () => {
           const totalProgress = userEnrollments.reduce((sum, current) => sum + (current.progress_percentage || 0), 0);
           const avg_progress = enrollments_count > 0 ? totalProgress / enrollments_count : 0;
 
+          // Normalize role field - check multiple possible field names and handle different data structures
+          let normalizedRole = user.role; // default fallback
+          // Convert to lowercase for consistent comparison
+          normalizedRole = normalizedRole.toLowerCase();
+
           return {
             ...user,
+            role: normalizedRole,
             enrollments_count,
             avg_progress,
           };
@@ -200,7 +202,7 @@ const SuperAdminDashboard: React.FC = () => {
           <Box sx={{ flex: '1 1 200px', minWidth: '200px' }}>
             <Card sx={{ p: 2, textAlign: "center", borderRadius: 2 }}>
               <Typography variant="h4" sx={{ fontWeight: 600, color: "info.main" }}>
-                {systemStats.avg_completion_rate}%
+                {Math.floor(systemStats.avg_completion_rate)}%
               </Typography>
               <Typography variant="body2" color="text.secondary">
                 Avg Completion
@@ -229,9 +231,7 @@ const UserManagementTab = () => (
       <Typography variant="h6" sx={{ fontWeight: 600 }}>
         User Management
       </Typography>
-      <Button variant="contained">
-        Add New User
-      </Button>
+
     </Box>
 
     <TableContainer component={Paper} sx={{ borderRadius: 2 }}>
@@ -242,7 +242,6 @@ const UserManagementTab = () => (
             <TableCell sx={{ fontWeight: 600 }}>Role</TableCell>
             <TableCell sx={{ fontWeight: 600 }}>Enrollments</TableCell>
             <TableCell sx={{ fontWeight: 600 }}>Avg Progress</TableCell>
-            <TableCell sx={{ fontWeight: 600 }}>Actions</TableCell>
           </TableRow>
         </TableHead>
         <TableBody>
@@ -263,11 +262,11 @@ const UserManagementTab = () => (
                   </Box>
                 </Box>
               </TableCell>
-              <TableCell>
-                <Chip 
-                  label={(user.role || 'unknown').toUpperCase()}
+              <TableCell >
+                <Chip sx={{ marginLeft:-2, marginRight:-1 }}
+                  label={(user.role || 'employee').toUpperCase()}
                   size="small" 
-                  color={getRoleColor(user.role || 'unknown')}
+                  color={getRoleColor(user.role || 'employee')}
                   variant="outlined"
                 />
               </TableCell>
@@ -285,14 +284,6 @@ const UserManagementTab = () => (
                     sx={{ height: 4, borderRadius: 2 }}
                   />
                 </Box>
-              </TableCell>
-              <TableCell>
-                <IconButton size="small" color="primary">
-                  ✏️
-                </IconButton>
-                <IconButton size="small" color="error">
-                  🗑️
-                </IconButton>
               </TableCell>
             </TableRow>
           ))}
@@ -376,12 +367,10 @@ const UserManagementTab = () => (
               >
                 <Tab label="System Overview" />
                 <Tab label="User Management" />
-                <Tab label="My Learning" />
               </Tabs>
 
               {tabValue === 0 && <SystemOverviewTab />}
               {tabValue === 1 && <UserManagementTab />}
-              {tabValue === 2 && <MyLearningTab />}
             </>
           )}
         </CardContent>

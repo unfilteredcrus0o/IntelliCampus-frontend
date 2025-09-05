@@ -38,7 +38,8 @@ export const ASSIGNMENT_ENDPOINTS = {
 };
 
 export const SUPER_ADMIN = {
-  ALL_EMPLOYEES :`${API_BASE_URL}/users`,
+  ALL_EMPLOYEES :`${API_BASE_URL}/users/all-for-assignment`,
+  ALL_FOR_ASSIGNMENT: `${API_BASE_URL}/users/all-for-assignment`,
 };
 
 // Health Check

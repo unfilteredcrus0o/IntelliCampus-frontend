@@ -262,7 +262,14 @@ const RoadmapScreen: React.FC = () => {
         }
       }
 
-      navigate(`/roadmap/${roadmapData.roadmap_id}`);
+      if (
+        userRole === "manager" ||
+        (userRole === "superadmin" && assignTo.length)
+      ) {
+        navigate("/dashboard");
+      } else {
+        navigate(`/roadmap/${roadmapData.roadmap_id}`);
+      }
       
     } catch (error) {
       console.error("Error submitting roadmap:", error);
