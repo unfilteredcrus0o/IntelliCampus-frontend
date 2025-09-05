@@ -8,7 +8,6 @@ import {
   CircularProgress,
   Button,
   Tooltip,
-  Chip,
 } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import { makeAuthenticatedRequest } from "../utils/api";
@@ -335,25 +334,6 @@ const EmployeeDashboard: React.FC = () => {
                       />
                     </Tooltip>
 
-                    {enrollment.is_assigned && (
-                      <Chip
-                        label="Assigned"
-                        size="small"
-                        sx={{
-                          position: "absolute",
-                          top: 8,
-                          left: 8,
-                          backgroundColor: "rgba(255,255,255,0.9)",
-                          color: "#ff9800",
-                          fontWeight: 600,
-                          fontSize: "0.7rem",
-                          height: 20,
-                          "& .MuiChip-label": {
-                            px: 1,
-                          },
-                        }}
-                      />
-                    )}
 
                     <Box sx={{ p: 2, pt: 3 }}>
                       <Typography

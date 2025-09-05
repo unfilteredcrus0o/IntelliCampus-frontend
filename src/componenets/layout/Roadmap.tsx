@@ -128,18 +128,52 @@ const RoadmapScreen: React.FC = () => {
     }
   }, [userRole]);
 
+  /*
+  Fetch call to get the employees details for assignments based on:
+  userRole - superadmin = shows all the employees + managers
+  userRole - manager = shows their employees
+  */
+
   const fetchEmployees = async () => {
     setEmployeesLoading(true);
     try {
-      const response = await makeAuthenticatedRequest(USER_ENDPOINTS.GET_EMPLOYEES, {
-        method: "GET",
-      });
-      
-      if (response.ok) {
-        const employeeData = await response.json();
-        setEmployees(employeeData);
+      const allUsers = [];
+
+      const employeePromise = makeAuthenticatedRequest(
+        USER_ENDPOINTS.GET_EMPLOYEES,
+        {
+          method: "GET",
+        }
+      );
+
+      const managerPromise =
+        userRole === "superadmin"
+          ? makeAuthenticatedRequest(USER_ENDPOINTS.GET_MANAGERS, {
+              method: "GET",
+            })
+          : null;
+
+      const [employeesResponse, managersResponse] = await Promise.all([
+        employeePromise,
+        managerPromise,
+      ]);
+
+      if (employeesResponse?.ok) {
+        const employeeData = await employeesResponse.json();
+        allUsers.push(...employeeData);
       } else {
         console.error("Failed to fetch employees");
+      }
+
+      if (userRole === "superadmin" && managersResponse?.ok) {
+        const managersData = await managersResponse.json();
+        allUsers.push(...managersData);
+      } else if (userRole === "superadmin") {
+        console.error("Failed to fetch managers");
+      }
+
+      if (allUsers.length > 0) {
+        setEmployees(allUsers);
       }
     } catch (error) {
       console.error("Error fetching employees:", error);
@@ -228,7 +262,14 @@ const RoadmapScreen: React.FC = () => {
         }
       }
 
-      navigate(`/roadmap/${roadmapData.roadmap_id}`);
+      if (
+        userRole === "manager" ||
+        (userRole === "superadmin" && assignTo.length)
+      ) {
+        navigate("/dashboard");
+      } else {
+        navigate(`/roadmap/${roadmapData.roadmap_id}`);
+      }
       
     } catch (error) {
       console.error("Error submitting roadmap:", error);

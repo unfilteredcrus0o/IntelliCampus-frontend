@@ -37,5 +37,9 @@ export const ASSIGNMENT_ENDPOINTS = {
   CREATE: `${API_BASE_URL}/assignments`,
 };
 
+export const SUPER_ADMIN = {
+  ALL_EMPLOYEES :`${API_BASE_URL}/users/all-for-assignment`
+};
+
 // Health Check
 export const HEALTH_ENDPOINT = `${API_BASE_URL}/health`;

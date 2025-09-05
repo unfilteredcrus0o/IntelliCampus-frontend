@@ -4,9 +4,7 @@ import {
   Card,
   CardContent,
   Typography,
-  Grid,
   CircularProgress,
-  Button,
   Tabs,
   Tab,
   List,
@@ -14,6 +12,8 @@ import {
   ListItemText,
   LinearProgress,
   Chip,
+  Button,
+  Tooltip,
 } from "@mui/material";
 
 import { useNavigate } from "react-router-dom";
@@ -46,7 +46,9 @@ const ManagerDashboard: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [tabValue, setTabValue] = useState(0);
+  const [enrollingRoadmapId, setEnrollingRoadmapId] = useState<string | null>(null);
   const navigate = useNavigate();
+  const currentUser = sessionStorage.getItem('user') ? JSON.parse(sessionStorage.getItem('user')) : {};  
 
   const getStatusFromPercentage = (percentage: number): string => {
     if (percentage === 0) return "ready";
@@ -80,130 +82,129 @@ const ManagerDashboard: React.FC = () => {
     }
   };
 
-  useEffect(() => {
-    const fetchData = async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        // Fetch manager's own enrollments
-        const enrollmentResponse = await makeAuthenticatedRequest(
-          ROADMAP_ENDPOINTS.ENROLLEMENTS,
-          { method: "GET" }
-        );
-        const enrollmentData = await enrollmentResponse.json();
+  const getButtonLabel = (status: string) => {
+    switch (status.toLowerCase()) {
+      case "completed":
+        return "Revisit Course";
+      case "in progress":
+        return "Resume";
+      case "ready":
+        return "Start Course";
+      default:
+        return "Continue";
+    }
+  };
 
-        let enrollmentList: any[] = [];
-        if (Array.isArray(enrollmentData)) {
-          enrollmentList = enrollmentData;
-        } else if (Array.isArray(enrollmentData?.data)) {
-          enrollmentList = enrollmentData.data;
-        } else {
-          setEnrollments([]);
-        }
+  const handleCourseClick = async (enrollment: Enrollment) => {
+    // Navigate to the roadmap
+    navigate(`/roadmap/${enrollment.roadmap_id}`);
+  };
 
-        // Fetch additional details for each enrollment
-        const enrichedEnrollments = await Promise.all(
-          enrollmentList.map(async (enrollment) => {
-            try {
-              const roadmapResponse = await makeAuthenticatedRequest(
-                ROADMAP_ENDPOINTS.GET_BY_ID(enrollment.roadmap_id),
-                { method: "GET" }
-              );
-              const roadmapData = await roadmapResponse.json();
+useEffect(() => {
+  const fetchData = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const enrollmentResponse = await makeAuthenticatedRequest(
+        ROADMAP_ENDPOINTS.ENROLLEMENTS,
+        { method: "GET" }
+      );
+      
+      const allEnrollmentData = await enrollmentResponse.json();
+      console.log("All raw enrollment data:", allEnrollmentData);
 
-              return {
-                ...enrollment,
-                title: roadmapData.title || "Unknown Course",
-                status: roadmapData.status || "ready",
-                progress_percentage: roadmapData.progress?.progress_percentage || 0,
-              };
-            } catch (err) {
-              console.error(`Failed to fetch details for roadmap ${enrollment.roadmap_id}:`, err);
-              return {
-                ...enrollment,
-                title: "Unknown Course",
-                status: "ready",
-                progress_percentage: 0,
-              };
-            }
-          })
-        );
+      const enrollmentsArray = Array.isArray(allEnrollmentData) 
+        ? allEnrollmentData 
+        : (Array.isArray(allEnrollmentData?.data) ? allEnrollmentData.data : []);
 
-        setEnrollments(enrichedEnrollments);
-
-        // TODO: Fetch team members data - this would require a new API endpoint
-        // For now, we'll use mock data
-        setTeamMembers([
-          {
-            id: "emp1",
-            name: "John Doe",
-            email: "john.doe@company.com",
-            role: "employee",
-            enrollments: [
-              { 
-                id: "1", 
-                roadmap_id: "rm1", 
-                user_id: "emp1", 
-                enrolled_at: "2024-01-01", 
-                total_topics: 10,
-                title: "React Fundamentals", 
-                status: "in progress", 
-                progress_percentage: 45 
-              },
-              { 
-                id: "2", 
-                roadmap_id: "rm2", 
-                user_id: "emp1", 
-                enrolled_at: "2024-01-01", 
-                total_topics: 8,
-                title: "JavaScript Advanced", 
-                status: "completed", 
-                progress_percentage: 100 
-              }
-            ]
-          },
-          {
-            id: "emp2",
-            name: "Jane Smith",
-            email: "jane.smith@company.com",
-            role: "employee",
-            enrollments: [
-              { 
-                id: "3", 
-                roadmap_id: "rm3", 
-                user_id: "emp2", 
-                enrolled_at: "2024-01-01", 
-                total_topics: 12,
-                title: "Python Basics", 
-                status: "ready", 
-                progress_percentage: 0 
-              },
-              { 
-                id: "4", 
-                roadmap_id: "rm4", 
-                user_id: "emp2", 
-                enrolled_at: "2024-01-01", 
-                total_topics: 15,
-                title: "Data Structures", 
-                status: "in progress", 
-                progress_percentage: 75 
-              }
-            ]
-          }
-        ]);
-
-      } catch (err: any) {
-        console.error(err);
-        setError(err.message || "Failed to fetch data");
+      if (enrollmentsArray.length === 0) {
         setEnrollments([]);
         setTeamMembers([]);
-      } finally {
         setLoading(false);
+        return; 
       }
-    };
 
-    fetchData();
-  }, []);
+      // Group enrollments by user ID
+      const userEnrollmentsMap = new Map();
+      const uniqueRoadmapIds = new Set<string>();
+      
+      enrollmentsArray.forEach(enrollment => {
+        if (!userEnrollmentsMap.has(enrollment.user_id)) {
+          userEnrollmentsMap.set(enrollment.user_id, []);
+        }
+        userEnrollmentsMap.get(enrollment.user_id).push(enrollment);
+        uniqueRoadmapIds.add(enrollment.roadmap_id);
+      });
+
+      // Fetch ALL roadmap details in a single Promise.all call for efficiency
+      const roadmapDetailsPromises = Array.from(uniqueRoadmapIds).map(id => 
+        makeAuthenticatedRequest(ROADMAP_ENDPOINTS.GET_BY_ID(id), { method: "GET" })
+          .then(res => res.json())
+          .catch(err => {
+            console.error(`Failed to fetch roadmap details for ID ${id}:`, err);
+            return { id, error: true };
+          })
+      );
+
+      const allRoadmapDetails = await Promise.all(roadmapDetailsPromises);
+      const roadmapDetailsMap = new Map();
+      allRoadmapDetails.forEach(details => {
+        if (!details.error) {
+          roadmapDetailsMap.set(details.id, details);
+        }
+      });
+      console.log("Fetched roadmap details:", roadmapDetailsMap);
+
+      // Enrich enrollments with roadmap details and separate them
+      const myEnrichedEnrollments: Enrollment[] = [];
+      const teamMembersMap = new Map<string, TeamMember>();
+
+      userEnrollmentsMap.forEach((enrollmentsForUser, userId) => {
+        const enrichedEnrollments = enrollmentsForUser.map(enrollment => {
+          const roadmapDetails = roadmapDetailsMap.get(enrollment.roadmap_id);
+          const progressPercentage = roadmapDetails?.progress?.progress_percentage ?? enrollment.progress_percentage ?? 0;
+          
+          return {
+            ...enrollment,
+            title: roadmapDetails?.title || "Unknown Course",
+            status: getStatusFromPercentage(progressPercentage),
+            progress_percentage: progressPercentage,
+          };
+        });
+
+        if (userId === currentUser?.id) {
+          myEnrichedEnrollments.push(...enrichedEnrollments);
+        } else {
+          if (!teamMembersMap.has(userId)) {
+            teamMembersMap.set(userId, {
+              id: userId,
+              name: `${userId}`, 
+              email: `${userId}@gmail.com`, 
+              role: "employee", 
+              enrollments: []
+            });
+          }
+          const teamMember = teamMembersMap.get(userId)!;
+          teamMember.enrollments.push(...enrichedEnrollments);
+        }
+      });
+
+      setEnrollments(myEnrichedEnrollments);
+      setTeamMembers(Array.from(teamMembersMap.values()));
+      console.log(Array.from(teamMembersMap.values()))
+      
+    } catch (err: unknown) {
+      console.error("Dashboard data fetch failed:", err);
+      setError("Failed to load dashboard data. Please try again.");
+      setEnrollments([]);
+      setTeamMembers([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  fetchData();
+}, [currentUser?.id]);
 
   const MyEnrollmentsTab = () => (
     <Box>
@@ -219,32 +220,147 @@ const ManagerDashboard: React.FC = () => {
               <Box key={enrollment.roadmap_id}>
                 <Card
                   sx={{
-                    width: 300,
-                    height: 160,
+                    width: 350,
+                    height: 200,
                     borderRadius: 3,
                     overflow: "hidden",
+                    position: "relative",
                     background: getCardBackground(calculatedStatus),
                     color: "white",
-                    cursor: "pointer",
+                    display: "flex",
+                    flexDirection: "column",
+                    justifyContent: "space-between",
+                    textAlign: "left",
                     transition: "all 0.3s ease",
+                    boxShadow: "0 4px 20px rgba(0,0,0,0.15)",
+                    cursor: "pointer",
                     "&:hover": {
                       transform: "translateY(-4px)",
                       boxShadow: "0 8px 30px rgba(0,0,0,0.25)",
                     },
+                    "&:hover .continue-btn": {
+                      opacity: 1,
+                      transform: "translateY(0)",
+                    },
                   }}
-                  onClick={() => navigate(`/roadmap/${enrollment.roadmap_id}`)}
                 >
-                  <CardContent sx={{ p: 2 }}>
-                    <Typography variant="body2" sx={{ fontSize: "0.75rem", opacity: 0.8, mb: 1 }}>
+                  <Tooltip title={enrollment.title || "Course"} placement="top" arrow>
+                    <Box
+                      sx={{
+                        position: "absolute",
+                        top: 16,
+                        right: 16,
+                        width: 20,
+                        height: 20,
+                        borderRadius: "50%",
+                        backgroundColor: getStatusColor(calculatedStatus) === "success" ? "#4caf50" : 
+                                       getStatusColor(calculatedStatus) === "primary" ? "#2196f3" : "#9e9e9e",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        boxShadow: "0 2px 8px rgba(0,0,0,0.3)",
+                        cursor: "pointer",
+                        transition: "all 0.2s ease",
+                        "&:hover": {
+                          transform: "scale(1.2)",
+                          boxShadow: "0 4px 12px rgba(0,0,0,0.4)",
+                        },
+                        "&::before": {
+                          content: '""',
+                          width: 8,
+                          height: 8,
+                          backgroundColor: "rgba(255,255,255,0.9)",
+                          borderRadius: "50%",
+                        },
+                      }}
+                    />
+                  </Tooltip>
+
+                  <Box sx={{ p: 2, pt: 3 }}>
+                    <Typography
+                      variant="body2"
+                      sx={{
+                        fontSize: "0.75rem",
+                        fontWeight: 500,
+                        opacity: 0.8,
+                        textTransform: "capitalize",
+                        mb: 1,
+                      }}
+                    >
                       {calculatedStatus}
                     </Typography>
-                    <Typography variant="h6" sx={{ fontWeight: 600, fontSize: "1rem", mb: 1 }}>
+                    
+                    <Typography
+                      variant="h6"
+                      sx={{
+                        fontWeight: 600,
+                        fontSize: "1.1rem",
+                        lineHeight: 1.3,
+                        color: "#fff",
+                        overflow: "hidden",
+                        display: "-webkit-box",
+                        WebkitLineClamp: 2,
+                        WebkitBoxOrient: "vertical",
+                        wordWrap: "break-word",
+                        mb: 1,
+                      }}
+                      title={enrollment.title || "Course"}
+                    >
                       {enrollment.title || "Course"}
                     </Typography>
-                    <Typography variant="body2" sx={{ fontSize: "0.7rem", opacity: 0.7 }}>
+                    
+                    <Typography
+                      variant="body2"
+                      sx={{
+                        fontSize: "0.7rem",
+                        opacity: 0.7,
+                        fontWeight: 400,
+                      }}
+                    >
                       Progress: {enrollment.progress_percentage || 0}%
                     </Typography>
-                  </CardContent>
+                  </Box>
+
+                  <Button
+                    className="continue-btn"
+                    variant="contained"
+                    disabled={enrollingRoadmapId === enrollment.roadmap_id}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleCourseClick(enrollment);
+                    }}
+                    sx={{
+                      position: "absolute",
+                      bottom: 16,
+                      right: 16,
+                      borderRadius: "16px",
+                      background: "rgba(255,255,255,0.2)",
+                      backdropFilter: "blur(10px)",
+                      border: "1px solid rgba(255,255,255,0.3)",
+                      color: "#fff",
+                      fontWeight: 600,
+                      textTransform: "none",
+                      fontSize: "0.8rem",
+                      px: 2.5,
+                      py: 0.8,
+                      opacity: 0,
+                      transform: "translateY(10px)",
+                      transition: "all 0.3s ease",
+                      "&:hover": {
+                        background: "rgba(255,255,255,0.3)",
+                        transform: "translateY(0) scale(1.05)",
+                      },
+                    }}
+                  >
+                    {enrollingRoadmapId === enrollment.roadmap_id ? (
+                      <>
+                        <CircularProgress size={16} sx={{ mr: 1, color: "inherit" }} />
+                        Loading...
+                      </>
+                    ) : (
+                      getButtonLabel(calculatedStatus)
+                    )}
+                  </Button>
                 </Card>
               </Box>
             );
