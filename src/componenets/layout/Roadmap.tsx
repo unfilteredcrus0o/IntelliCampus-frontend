@@ -214,8 +214,13 @@ const RoadmapScreen: React.FC = () => {
       const roadmapData = await roadmapResponse.json();
       
       if (!roadmapData.roadmap_id) {
+        let errorToBeShown = "Failed to create roadmap";
+        if(roadmapData?.detail?.error && roadmapData?.detail?.invalid_topics?.length){
+          console.error("Unrecognized topic: ", roadmapData?.detail?.error);
+          errorToBeShown = roadmapData?.detail?.error;
+        }
         console.error("Unexpected response:", roadmapData);
-        setError("Failed to create roadmap");
+        setError(errorToBeShown);
         return;
       }
 
@@ -338,59 +343,62 @@ const RoadmapScreen: React.FC = () => {
                   options={getAllTopics()}
                   value={selectedTopics}
                   onChange={(event, newValue) => {
+                     if (!newValue?.length) {
+                       setError(null);
+                     }
                     // Process the values to handle both selections and custom input
                     const processedTopics = newValue.map(topic => {
-                      // If it's an "Add" suggestion, extract the actual value
+                        // If it's an "Add" suggestion, extract the actual value
                       if (typeof topic === 'string' && topic.startsWith('Add "') && topic.endsWith('"')) {
-                        return topic.slice(5, -1); // Remove 'Add "' and '"'
-                      }
-                      return topic;
+                          return topic.slice(5, -1); // Remove 'Add "' and '"'
+                        }
+                        return topic;
                     }).filter(topic => topic && topic.toString().trim().length >= 2) // Basic validation: at least 2 chars
                       .map(topic => topic.toString().trim());
-                    
+
                     setSelectedTopics(processedTopics);
                   }}
                   filterOptions={(options, params) => {
                     const inputValue = params.inputValue.trim();
-                    
+
                     // Get intelligent suggestions based on input and existing topics
                     const suggestions = getTopicSuggestions(inputValue, selectedTopics);
-                    
+
                     // If user typed something not in suggestions and it's valid, show "Add" option
                     if (inputValue.length >= 2 && 
                         !suggestions.some(option => option.toLowerCase() === inputValue.toLowerCase()) &&
                         !selectedTopics.some(selected => selected.toLowerCase() === inputValue.toLowerCase())) {
                       return [...suggestions, `Add "${inputValue}"`];
                     }
-                    
+
                     return suggestions;
                   }}
                   className="topics-autocomplete"
                   renderInput={(params) => (
-                    <TextField 
-                      {...params} 
-                      label="Choose or type your learning interests" 
-                      placeholder="e.g., Python, Machine Learning, Data Science, Web Development" 
+                    <TextField
+                      {...params}
+                      label="Choose or type your learning interests"
+                      placeholder="e.g., Python, Machine Learning, Data Science, Web Development"
                       helperText="Type any topic you want to learn. We'll suggest related topics from our knowledge base or create a custom roadmap for your input (min 2 characters)"
                     />
                   )}
                   renderTags={(value, getTagProps) =>
                     value.map((option, index) => {
                       const { key, ...tagProps } = getTagProps({ index });
-                      
+
                       // Check if this is a predefined topic or custom topic
                       const isCustomTopic = !getAllTopics().some(predefined => 
-                        predefined.toLowerCase() === option.toLowerCase()
+                          predefined.toLowerCase() === option.toLowerCase()
                       );
-                      
+
                       return (
                         <Chip
                           key={key}
                           label={option}
                           {...tagProps}
                           sx={{
-                            background: isCustomTopic 
-                              ? "linear-gradient(135deg, #6a1b9a 0%, #8e24aa 100%)" 
+                            background: isCustomTopic
+                              ? "linear-gradient(135deg, #6a1b9a 0%, #8e24aa 100%)"
                               : "linear-gradient(135deg, #a01441 0%, #c8185a 100%)",
                             color: "white",
                             borderRadius: "16px",
@@ -411,45 +419,49 @@ const RoadmapScreen: React.FC = () => {
                     if (typeof option === 'string' && option.startsWith('Add "')) {
                       return "Custom Topic";
                     }
-                    
+
                     const category = Object.entries(topicCategories).find(([_, topics]) => 
                       topics.includes(option)
                     );
-                    
+
                     return category ? category[0] : "Other";
                   }}
                 />
-                
+                {error && (
+                  <Alert severity="warning" sx={{ mt: 2 }}>
+                    {error}
+                  </Alert>
+                )}
                 {/* Show contextual suggestions when topics are selected */}
                 {selectedTopics.length > 0 && getContextualSuggestions(selectedTopics, getAllTopics()).length > 0 && (
-                  <Box sx={{ mt: 2 }}>
+                    <Box sx={{ mt: 2 }}>
                     <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                      You might also be interested in:
-                    </Typography>
+                        You might also be interested in:
+                      </Typography>
                     <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
                       {getContextualSuggestions(selectedTopics, getAllTopics()).slice(0, 6).map((suggestion) => (
-                        <Chip
-                          key={suggestion}
-                          label={suggestion}
-                          variant="outlined"
-                          size="small"
-                          onClick={() => {
-                            if (!selectedTopics.includes(suggestion)) {
+                            <Chip
+                              key={suggestion}
+                              label={suggestion}
+                              variant="outlined"
+                              size="small"
+                              onClick={() => {
+                                if (!selectedTopics.includes(suggestion)) {
                               setSelectedTopics([...selectedTopics, suggestion]);
-                            }
-                          }}
-                          sx={{
+                                }
+                              }}
+                              sx={{
                             cursor: 'pointer',
                             '&:hover': {
                               backgroundColor: 'rgba(160, 20, 65, 0.1)',
                               borderColor: '#a01441',
-                            },
-                          }}
-                        />
-                      ))}
+                                },
+                              }}
+                            />
+                          ))}
+                      </Box>
                     </Box>
-                  </Box>
-                )}
+                  )}
               </Box>
 
               {/* Skill Level */}
@@ -463,10 +475,10 @@ const RoadmapScreen: React.FC = () => {
                   onChange={(e) => setSkillLevel(e.target.value)}
                   className="skill-level-group"
                 >
-                  <FormControlLabel 
-                    value="basic" 
-                    control={<Radio />} 
-                    label="Beginner" 
+                  <FormControlLabel
+                    value="basic"
+                    control={<Radio />}
+                    label="Beginner"
                   />
                   <FormControlLabel
                     value="intermediate"
@@ -519,7 +531,7 @@ const RoadmapScreen: React.FC = () => {
                     <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
                       Assign this roadmap to employees under your management
                     </Typography>
-                    
+
                     {/* Employee Selection */}
                     <Autocomplete
                       multiple
@@ -531,9 +543,9 @@ const RoadmapScreen: React.FC = () => {
                       getOptionLabel={(option) => `${option.name} (${option.email})`}
                       loading={employeesLoading}
                       renderInput={(params) => (
-                        <TextField 
-                          {...params} 
-                          label="Assign to employees" 
+                        <TextField
+                          {...params}
+                          label="Assign to employees"
                           placeholder="Select employees to assign this roadmap"
                           helperText="Choose employees who will receive this roadmap assignment"
                           InputProps={{
@@ -572,7 +584,7 @@ const RoadmapScreen: React.FC = () => {
                         })
                       }
                     />
-                    
+
                     {/* Due Date (Optional) */}
                     {assignTo.length > 0 && (
                       <TextField
@@ -593,9 +605,9 @@ const RoadmapScreen: React.FC = () => {
               )}
 
               {/* Submit Button */}
-              <Button 
-                variant="contained" 
-                type="submit" 
+              <Button
+                variant="contained"
+                type="submit"
                 disabled={loading || !isFormValid}
                 className="submit-button"
                 size="large"
@@ -608,7 +620,7 @@ const RoadmapScreen: React.FC = () => {
                 ) : (
                   assignTo.length > 0 ? 
                     `Create & Assign to ${assignTo.length} Employee${assignTo.length > 1 ? 's' : ''}` :
-                    "Create My Learning Roadmap"
+                  "Create My Learning Roadmap"
                 )}
               </Button>
 
