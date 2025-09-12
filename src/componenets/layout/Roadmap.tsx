@@ -184,8 +184,7 @@ const RoadmapScreen: React.FC = () => {
 
   const isFormValid =
   selectedTopics.length > 0 &&
-  skillLevel !== "" &&
-  ((Number(hours) || 0) > 0 || (Number(minutes) || 0) > 0);
+  skillLevel !== "";
 
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -193,9 +192,9 @@ const RoadmapScreen: React.FC = () => {
     setLoading(true);
 
     const totalMinutes = (Number(hours) || 0) * 60 + (Number(minutes) || 0);
-    const formattedDuration = `${Math.floor(totalMinutes / 60)}h ${
-      totalMinutes % 60
-    }m`;
+    const formattedDuration = totalMinutes > 0 
+      ? `${Math.floor(totalMinutes / 60)}h ${totalMinutes % 60}m`
+      : "Self-paced";
 
     const roadmapPayload = {
       selectedTopics,
@@ -484,7 +483,10 @@ const RoadmapScreen: React.FC = () => {
               {/* Duration */}
               <Box className="form-section">
                 <Typography variant="h6" className="form-section-title">
-                  Study Duration
+                  Study Duration (Optional)
+                </Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                  Set your preferred study time per week, or leave blank for self-paced learning.
                 </Typography>
                 <Stack direction="row" spacing={2} className="duration-inputs">
                   <TextField

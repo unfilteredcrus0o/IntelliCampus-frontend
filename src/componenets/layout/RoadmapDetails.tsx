@@ -42,6 +42,7 @@ const RoadmapDetails = () => {
   const [showTopicCompletionDial, setShowTopicCompletionDial] = useState(false);
   const [isUpdatingProgress, setIsUpdatingProgress] = useState(false);
   const [realtimeTopicStatus, setRealtimeTopicStatus] = useState<{[key: string]: string}>({}); // Real-time status updates
+  const [isContentExpanded, setIsContentExpanded] = useState(false);
 
   // Store original API structure for order preservation
   const originalStructure = useMemo(() => {
@@ -321,70 +322,81 @@ const RoadmapDetails = () => {
   }
 
   return (
-    <div className="roadmap-details-container">
+    <div className={`roadmap-details-container ${isContentExpanded ? 'content-expanded' : ''}`}>
       {/* Header Section */}
-      <div className="roadmap-header-section">
-        <div className="roadmap-header-content">
-          <IconButton
-            onClick={() => setDrawerOpen(true)}
-            className="menu-button"
-            aria-label="Open Milestone Drawer"
-          >
-            ☰
-          </IconButton>
-          <Typography variant="h3" className="roadmap-title">
-            {roadmap.title}
-          </Typography>
+      {!isContentExpanded && (
+        <div className="roadmap-header-section">
+          <div className="roadmap-header-content">
+            <IconButton
+              onClick={() => setDrawerOpen(true)}
+              className="menu-button"
+              aria-label="Open Milestone Drawer"
+            >
+              ☰
+            </IconButton>
+            <Typography variant="h3" className="roadmap-title">
+              {roadmap.title}
+            </Typography>
+          </div>
         </div>
-      </div>
+      )}
 
       <div className="roadmap-main-content">
-        <div className="roadmap-stepper fade-in-up">
-          <Stepper
-            activeStep={getOriginalMilestones().findIndex(
-              (m) => m.id === activeMilestoneId
-            )}
-            alternativeLabel
-            className="roadmap-stepper"
-          >
-            {getOriginalMilestones().map((milestone: any, index: number) => {
-              const isFirst = index === 0;
-              const originalMilestones = getOriginalMilestones();
-              const isUnlocked =
-                isFirst ||
-                completedMilestones.has(originalMilestones[index - 1]?.id);
-              return (
-                <Step
-                  key={milestone.id}
-                  completed={completedMilestones.has(milestone.id)}
-                >
-                  <StepLabel
-                    onClick={() => {
-                      if (isUnlocked) {
-                        setActiveMilestoneId(milestone.id);
-                        setDrawerOpen(true);
-                      }
-                    }}
-                    sx={{ 
-                      cursor: isUnlocked ? "pointer" : "not-allowed",
-                      opacity: isUnlocked ? 1 : 0.5,
-                    }}
+        {!isContentExpanded && (
+          <div className="roadmap-stepper fade-in-up">
+            <Stepper
+              activeStep={getOriginalMilestones().findIndex(
+                (m) => m.id === activeMilestoneId
+              )}
+              alternativeLabel
+              className="roadmap-stepper"
+            >
+              {getOriginalMilestones().map((milestone: any, index: number) => {
+                const isFirst = index === 0;
+                const originalMilestones = getOriginalMilestones();
+                const isUnlocked =
+                  isFirst ||
+                  completedMilestones.has(originalMilestones[index - 1]?.id);
+                return (
+                  <Step
+                    key={milestone.id}
+                    completed={completedMilestones.has(milestone.id)}
                   >
-                    {milestone.name}
-                  </StepLabel>
-                </Step>
-              );
-            })}
-          </Stepper>
-        </div>
+                    <StepLabel
+                      onClick={() => {
+                        if (isUnlocked) {
+                          setActiveMilestoneId(milestone.id);
+                          setDrawerOpen(true);
+                        }
+                      }}
+                      sx={{ 
+                        cursor: isUnlocked ? "pointer" : "not-allowed",
+                        opacity: isUnlocked ? 1 : 0.5,
+                      }}
+                    >
+                      {milestone.name}
+                    </StepLabel>
+                  </Step>
+                );
+              })}
+            </Stepper>
+          </div>
+        )}
 
         {/* Topic Explanation Section */}
         {activeTopicId && (
-          <div className="topic-explanation-container fade-in-up">
+          <div className={`topic-explanation-container fade-in-up ${isContentExpanded ? 'expanded' : ''}`}>
             <div className="topic-explanation-header">
               <Typography variant="h4" component="h3">
                 Topic Explanation
               </Typography>
+              <IconButton
+                onClick={() => setIsContentExpanded(!isContentExpanded)}
+                className="expand-toggle-button"
+                aria-label={isContentExpanded ? "Collapse content" : "Expand content"}
+              >
+                {isContentExpanded ? "⤋" : "⤢"}
+              </IconButton>
             </div>
             <div className="explanation-content">
               {explanationLoading ? (

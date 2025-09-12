@@ -9,7 +9,7 @@
 .roadmap-header-section {
   background: linear-gradient(135deg, #a01441 0%, #c8185a 100%);
   color: white;
-  padding: 40px 20px;
+  padding: 20px 20px;
   position: relative;
   overflow: hidden;
 }
@@ -53,21 +53,21 @@
 .roadmap-title {
   flex-grow: 1;
   font-weight: 700 !important;
-  font-size: 2.5rem !important;
+  font-size: 2rem !important;
   text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
   margin: 0 !important;
 }
 
 .roadmap-main-content {
   width: 100%;
-  padding: 40px 0;
+  padding: 20px 0;
 }
 
 /* Stepper Styling */
 .roadmap-stepper {
   background: white;
-  padding: 40px 40px;
-  margin: 0 20px 40px 20px;
+  padding: 20px 30px;
+  margin: 0 20px 20px 20px;
   border-radius: 12px;
   border: 1px solid #e0e0e0;
 }
@@ -328,6 +328,12 @@
   gap: 12px;
 }
 
+.topic-explanation-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
 .explanation-content {
   max-height: 60vh;
   overflow-y: auto;
@@ -439,6 +445,84 @@
   background: #1b5e20;
 }
 
+/* Expand Toggle Button */
+.expand-toggle-button {
+  background: rgba(160, 20, 65, 0.1) !important;
+  color: #a01441 !important;
+  border-radius: 8px !important;
+  width: 40px !important;
+  height: 40px !important;
+  transition: all 0.3s ease !important;
+  font-size: 1.2rem !important;
+}
+
+.expand-toggle-button:hover {
+  background: rgba(160, 20, 65, 0.2) !important;
+  transform: scale(1.05);
+}
+
+/* Expanded Content Styles */
+.roadmap-details-container.content-expanded {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1000;
+  background: #fff;
+  overflow: hidden;
+}
+
+.roadmap-details-container.content-expanded .roadmap-main-content {
+  padding: 0;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.roadmap-details-container.content-expanded .topic-explanation-container.expanded {
+  height: 100vh;
+  margin: 0;
+  border-radius: 0;
+  box-shadow: none;
+  border: none;
+  display: flex;
+  flex-direction: column;
+}
+
+.roadmap-details-container.content-expanded .topic-explanation-container.expanded::before {
+  display: none;
+}
+
+.roadmap-details-container.content-expanded .topic-explanation-header {
+  margin: 0;
+  border-radius: 0;
+  flex-shrink: 0;
+  padding: 20px 30px;
+  background: linear-gradient(135deg, #a01441 0%, #c8185a 100%);
+  color: white;
+  border: none;
+}
+
+.roadmap-details-container.content-expanded .topic-explanation-header h3 {
+  color: white;
+}
+
+.roadmap-details-container.content-expanded .expand-toggle-button {
+  background: rgba(255, 255, 255, 0.2) !important;
+  color: white !important;
+}
+
+.roadmap-details-container.content-expanded .expand-toggle-button:hover {
+  background: rgba(255, 255, 255, 0.3) !important;
+}
+
+.roadmap-details-container.content-expanded .explanation-content {
+  flex: 1;
+  max-height: none;
+  padding: 30px;
+  overflow-y: auto;
+}
+
 /* Loading States */
 .loading-container {
   display: flex;
@@ -463,12 +547,12 @@
   }
   
   .roadmap-main-content {
-    padding: 20px 0;
+    padding: 15px 0;
   }
   
   .roadmap-stepper {
-    padding: 30px 20px;
-    margin: 0 15px 30px 15px;
+    padding: 15px 20px;
+    margin: 0 15px 15px 15px;
   }
   
   .milestone-drawer-content {
@@ -494,6 +578,21 @@
   .MuiSpeedDial-root {
     bottom: 20px !important;
     right: 20px !important;
+  }
+  
+  /* Expanded Mode Mobile */
+  .roadmap-details-container.content-expanded .topic-explanation-header {
+    padding: 15px 20px;
+  }
+  
+  .roadmap-details-container.content-expanded .explanation-content {
+    padding: 20px;
+  }
+  
+  .expand-toggle-button {
+    width: 36px !important;
+    height: 36px !important;
+    font-size: 1rem !important;
   }
 }
 
