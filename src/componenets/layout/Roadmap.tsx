@@ -16,17 +16,32 @@ import {
   Container,
   Chip,
   FormControl,
-  FormLabel,
   Divider,
+  InputAdornment,
+  Grid,
+  Card,
+  CardContent,
+  Avatar,
+  ListItem,
+  ListItemText,
+  ListItemAvatar,
 } from "@mui/material";
-import * as Constants from "../../constants";
+import RoadmapIcon from '../../assets/svgIcons/RoadmapIcon';
+import TopicIcon from '../../assets/svgIcons/TopicIcon';
+import HoursIcon from '../../assets/svgIcons/HoursIcon';
+import SkillIcon from '../../assets/svgIcons/SkillIcon';
+import AssignmentIcon from '../../assets/svgIcons/AssignmentIcon';
+import CreateRoadmapIcon from '../../assets/svgIcons/CreateRoadmapIcon';
+
 import { useNavigate } from "react-router-dom";
 import { makeAuthenticatedRequest, getCurrentUserRole } from "../../utils/api";
-import "./Roadmap.css";
+import * as Constants from "../../constants";
+
+// Define a consistent dark red color
+const darkRed = '#a01441';
 
 const topicsList = ["Python", "Git", "JavaScript", "React", "CSS", "Machine Learning", "Data Science", "Web Development", "Mobile Development", "DevOps", "Cloud Computing", "Artificial Intelligence", "Database Management", "Cybersecurity", "UI/UX Design"];
 
-// Topic categories for better organization
 const topicCategories = {
   "Programming Languages": ["Python", "JavaScript", "Java", "C++", "C#", "Go", "Rust", "TypeScript"],
   "Web Development": ["React", "Angular", "Vue.js", "HTML", "CSS", "Node.js", "Express.js", "Web Development"],
@@ -38,19 +53,16 @@ const topicCategories = {
   "Security": ["Cybersecurity", "Network Security", "Web Security", "Ethical Hacking"]
 };
 
-// Get all topics from categories
 const getAllTopics = () => {
   return Array.from(new Set([...topicsList, ...Object.values(topicCategories).flat()]));
 };
 
-// Get intelligent topic suggestions based on input
 const getTopicSuggestions = (inputValue: string, selectedTopics: string[]) => {
   const allTopics = getAllTopics();
   const input = inputValue.toLowerCase();
   
   if (!input) return allTopics.filter(topic => !selectedTopics.includes(topic)).slice(0, 10);
   
-  // Prioritize exact matches, then starts with, then contains
   const exactMatches = allTopics.filter(topic => 
     topic.toLowerCase() === input && !selectedTopics.includes(topic)
   );
@@ -71,15 +83,13 @@ const getTopicSuggestions = (inputValue: string, selectedTopics: string[]) => {
   return [...exactMatches, ...startsWithMatches, ...containsMatches].slice(0, 8);
 };
 
-// Get contextual suggestions based on selected topics
-const getContextualSuggestions = (selectedTopics: string[], allTopics: string[]) => {
+const getContextualSuggestions = (selectedTopics: string[]) => {
   if (selectedTopics.length === 0) return [];
   
-  // Find related topics from the same categories
   const relatedTopics = new Set<string>();
   
   selectedTopics.forEach(selectedTopic => {
-    Object.entries(topicCategories).forEach(([category, topics]) => {
+    Object.entries(topicCategories).forEach(([, topics]) => {
       if (topics.some(topic => topic.toLowerCase() === selectedTopic.toLowerCase())) {
         topics.forEach(relatedTopic => {
           if (!selectedTopics.some(selected => selected.toLowerCase() === relatedTopic.toLowerCase())) {
@@ -106,11 +116,10 @@ const RoadmapScreen: React.FC = () => {
   const [minutes, setMinutes] = useState<number | "">("");
   const [loading, setLoading] = useState(false);
   const [toastOpen, setToastOpen] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [, setError] = useState<string | null>(null);
   const [assignmentToastOpen, setAssignmentToastOpen] = useState(false);
   const [assignmentMessage, setAssignmentMessage] = useState("");
   
-  // Assignment-related state
   const [assignTo, setAssignTo] = useState<string[]>([]);
   const [dueDate, setDueDate] = useState("");
   const [employees, setEmployees] = useState<Employee[]>([]);
@@ -120,7 +129,7 @@ const RoadmapScreen: React.FC = () => {
   const { ROADMAP_ENDPOINTS, USER_ENDPOINTS, ASSIGNMENT_ENDPOINTS } = Constants;
   const navigate = useNavigate();
   const userRole = getCurrentUserRole();
-  // Check if user can assign roadmaps
+
   useEffect(() => {
     if (userRole === "manager" || userRole === "superadmin") {
       setShowAssignmentSection(true);
@@ -128,29 +137,17 @@ const RoadmapScreen: React.FC = () => {
     }
   }, [userRole]);
 
-  /*
-  Fetch call to get the employees details for assignments based on:
-  userRole - superadmin = shows all the employees + managers
-  userRole - manager = shows their employees
-  */
-
   const fetchEmployees = async () => {
     setEmployeesLoading(true);
     try {
       const allUsers = [];
-
       const employeePromise = makeAuthenticatedRequest(
         USER_ENDPOINTS.GET_EMPLOYEES,
-        {
-          method: "GET",
-        }
+        { method: "GET" }
       );
-
       const managerPromise =
         userRole === "superadmin"
-          ? makeAuthenticatedRequest(USER_ENDPOINTS.GET_MANAGERS, {
-              method: "GET",
-            })
+          ? makeAuthenticatedRequest(USER_ENDPOINTS.GET_MANAGERS, { method: "GET" })
           : null;
 
       const [employeesResponse, managersResponse] = await Promise.all([
@@ -182,10 +179,7 @@ const RoadmapScreen: React.FC = () => {
     }
   };
 
-  const isFormValid =
-  selectedTopics.length > 0 &&
-  skillLevel !== "";
-
+  const isFormValid = selectedTopics.length > 0 && skillLevel !== "";
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -204,7 +198,6 @@ const RoadmapScreen: React.FC = () => {
     };
 
     try {
-      // Step 1: Create the roadmap
       const roadmapResponse = await makeAuthenticatedRequest(ROADMAP_ENDPOINTS.CREATE, {
         method: "POST",
         body: roadmapPayload,
@@ -213,14 +206,18 @@ const RoadmapScreen: React.FC = () => {
       const roadmapData = await roadmapResponse.json();
       
       if (!roadmapData.roadmap_id) {
+        let errorToBeShown = "Failed to create roadmap";
+        if(roadmapData?.detail?.error && roadmapData?.detail?.invalid_topics?.length){
+          console.error("Unrecognized topic: ", roadmapData?.detail?.error);
+          errorToBeShown = roadmapData?.detail?.error;
+        }
         console.error("Unexpected response:", roadmapData);
-        setError("Failed to create roadmap");
+        setError(errorToBeShown);
         return;
       }
 
       let assignmentResults = null;
 
-      // Step 2: Create assignments if needed
       if (showAssignmentSection && assignTo.length > 0) {
         try {
           const assignmentPayload = {
@@ -236,9 +233,6 @@ const RoadmapScreen: React.FC = () => {
 
           if (assignmentResponse.ok) {
             assignmentResults = await assignmentResponse.json();
-            console.log("Assignment results:", assignmentResults);
-
-            // Show assignment success message
             const successCount = assignmentResults.successful_assignments?.length || 0;
             const failCount = assignmentResults.failed_assignments?.length || 0;
             
@@ -280,116 +274,152 @@ const RoadmapScreen: React.FC = () => {
 
   const handleHoursChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const raw = e.target.value;
-
-    // Allow empty input
     if (raw === "") {
       setHours("");
       return;
     }
-
-    // Allow only digits
     if (!/^\d+$/.test(raw)) return;
-
     const value = parseInt(raw, 10);
-
     if (value > 168) {
       setToastOpen(true);
       return;
     }
-
     setHours(value);
   };
 
   const handleMinutesChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const raw = e.target.value;
-    const value =
-      raw === "" ? "" : Math.max(0, Math.min(59, parseInt(raw, 10)));
+    const value = raw === "" ? "" : Math.max(0, Math.min(59, parseInt(raw, 10)));
     setMinutes(value);
   };
 
   return (
-    <div className="roadmap-container">
-      <Container maxWidth="sm">
-        <Paper elevation={4} className="roadmap-form-paper">
-          <div className="roadmap-header">
-            <Typography variant="h4" component="h1">
-              Roadmap Builder
-            </Typography>
-          </div>
-
-          <div className="roadmap-form-content">
-            <Box
-              component="form"
-              onSubmit={handleSubmit}
-              sx={{ display: "flex", flexDirection: "column", gap: 2 }}
+    <Container 
+      maxWidth="sm" 
+      sx={{ 
+        py: 4, 
+        background: `radial-gradient(circle, #fcf4f4, #f0e6e6)`, 
+        minHeight: '100vh',
+        transition: 'background 0.5s ease-in-out'
+      }}
+    >
+      <Paper elevation={8} sx={{ p: { xs: 2, md: 4 }, borderRadius: 3 }}>
+        <Box sx={{ textAlign: 'center', mb: 4 }}>
+          <Stack direction="row" alignItems="center" justifyContent="center" spacing={1} sx={{ color: darkRed }}>
+              <RoadmapIcon fontSize="large" sx={{ color: darkRed }} />
+            <Typography
+              variant="h4"
+              component="h1"
+              gutterBottom
+              sx={{ fontWeight: 700, color: darkRed }}
+              style={{fontSize: '24px', fontStretch: 'expanded'}}
             >
-              {/* Topics Selection */}
-              <Box className="form-section">
-                <Typography variant="h6" className="form-section-title">
-                  Select Learning Topics
-                </Typography>
-                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                  Choose from suggested topics or type your own. Our AI will create a personalized roadmap for any learning topic!
-                </Typography>
-                <Autocomplete
+              Create a New Learning Roadmap
+            </Typography>
+          </Stack>
+          <Typography variant="body1" color="text.secondary" style={{marginTop: '16px'}}>
+            Generate a personalized, step-by-step learning path with our AI-powered builder.
+          </Typography>
+        </Box>
+
+        <Box component="form" onSubmit={handleSubmit} sx={{ display: "flex", flexDirection: "column", gap: 4 }}>
+          
+          {/* Topics Selection Section */}
+          <Box>
+            <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1, color: darkRed }}>
+                 <TopicIcon fontSize="large" sx={{ color: darkRed }} />
+              <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                Select Learning Topics
+              </Typography>
+            </Stack>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+              What do you want to learn? Our AI will create a personalized roadmap based on your interests.
+            </Typography>
+               <Autocomplete
                   multiple
                   freeSolo
                   options={getAllTopics()}
                   value={selectedTopics}
                   onChange={(event, newValue) => {
+                     if (!newValue?.length) {
+                       setError(null);
+                     }
                     // Process the values to handle both selections and custom input
                     const processedTopics = newValue.map(topic => {
-                      // If it's an "Add" suggestion, extract the actual value
+                        // If it's an "Add" suggestion, extract the actual value
                       if (typeof topic === 'string' && topic.startsWith('Add "') && topic.endsWith('"')) {
-                        return topic.slice(5, -1); // Remove 'Add "' and '"'
-                      }
-                      return topic;
+                          return topic.slice(5, -1); // Remove 'Add "' and '"'
+                        }
+                        return topic;
                     }).filter(topic => topic && topic.toString().trim().length >= 2) // Basic validation: at least 2 chars
                       .map(topic => topic.toString().trim());
-                    
+
                     setSelectedTopics(processedTopics);
                   }}
                   filterOptions={(options, params) => {
                     const inputValue = params.inputValue.trim();
-                    
+
                     // Get intelligent suggestions based on input and existing topics
                     const suggestions = getTopicSuggestions(inputValue, selectedTopics);
-                    
+
                     // If user typed something not in suggestions and it's valid, show "Add" option
                     if (inputValue.length >= 2 && 
                         !suggestions.some(option => option.toLowerCase() === inputValue.toLowerCase()) &&
                         !selectedTopics.some(selected => selected.toLowerCase() === inputValue.toLowerCase())) {
                       return [...suggestions, `Add "${inputValue}"`];
                     }
-                    
+
                     return suggestions;
                   }}
                   className="topics-autocomplete"
-                  renderInput={(params) => (
-                    <TextField 
-                      {...params} 
-                      label="Choose or type your learning interests" 
-                      placeholder="e.g., Python, Machine Learning, Data Science, Web Development" 
-                      helperText="Type any topic you want to learn. We'll suggest related topics from our knowledge base or create a custom roadmap for your input (min 2 characters)"
-                    />
-                  )}
+                renderInput={(params) => (
+  <TextField
+  {...params}
+  label="Choose or type your learning interests"
+  placeholder="e.g., Python, Machine Learning, Data Science, Web Development"
+  helperText="Type any topic you want to learn. We'll suggest related topics from our knowledge base or create a custom roadmap for your input (min 2 characters)"
+  sx={{
+    '& label': {
+      color: '#a01441', // dark red
+    },
+    '& label.Mui-focused': {
+      color: '#a01441',
+    },
+    '.MuiOutlinedInput-root': {
+      '& fieldset': {
+        borderColor: '#ccc',
+      },
+      '&:hover fieldset': {
+        borderColor: '#a01441',
+      },
+      '&.Mui-focused fieldset': {
+        borderColor: '#a01441',
+      },
+    },
+    input: {
+      color: '#000',
+    }
+  }}
+
+  />
+)}
                   renderTags={(value, getTagProps) =>
                     value.map((option, index) => {
                       const { key, ...tagProps } = getTagProps({ index });
-                      
+
                       // Check if this is a predefined topic or custom topic
                       const isCustomTopic = !getAllTopics().some(predefined => 
-                        predefined.toLowerCase() === option.toLowerCase()
+                          predefined.toLowerCase() === option.toLowerCase()
                       );
-                      
+
                       return (
                         <Chip
                           key={key}
                           label={option}
                           {...tagProps}
                           sx={{
-                            background: isCustomTopic 
-                              ? "linear-gradient(135deg, #6a1b9a 0%, #8e24aa 100%)" 
+                            background: isCustomTopic
+                              ? "linear-gradient(135deg, #6a1b9a 0%, #8e24aa 100%)"
                               : "linear-gradient(135deg, #a01441 0%, #c8185a 100%)",
                             color: "white",
                             borderRadius: "16px",
@@ -410,253 +440,358 @@ const RoadmapScreen: React.FC = () => {
                     if (typeof option === 'string' && option.startsWith('Add "')) {
                       return "Custom Topic";
                     }
-                    
+
                     const category = Object.entries(topicCategories).find(([_, topics]) => 
                       topics.includes(option)
                     );
-                    
+
                     return category ? category[0] : "Other";
                   }}
                 />
-                
-                {/* Show contextual suggestions when topics are selected */}
-                {selectedTopics.length > 0 && getContextualSuggestions(selectedTopics, getAllTopics()).length > 0 && (
-                  <Box sx={{ mt: 2 }}>
-                    <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                      You might also be interested in:
-                    </Typography>
-                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-                      {getContextualSuggestions(selectedTopics, getAllTopics()).slice(0, 6).map((suggestion) => (
-                        <Chip
-                          key={suggestion}
-                          label={suggestion}
-                          variant="outlined"
-                          size="small"
-                          onClick={() => {
-                            if (!selectedTopics.includes(suggestion)) {
-                              setSelectedTopics([...selectedTopics, suggestion]);
-                            }
-                          }}
-                          sx={{
-                            cursor: 'pointer',
-                            '&:hover': {
-                              backgroundColor: 'rgba(160, 20, 65, 0.1)',
-                              borderColor: '#a01441',
-                            },
-                          }}
-                        />
-                      ))}
-                    </Box>
-                  </Box>
-                )}
-              </Box>
-
-              {/* Skill Level */}
-              <Box className="form-section">
-                <Typography variant="h6" className="form-section-title">
-                  Current Skill Level
+            
+            {/* Contextual Suggestions Chips */}
+            {selectedTopics.length > 0 && getContextualSuggestions(selectedTopics).length > 0 && (
+              <Box sx={{ mt: 2 }}>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                  You might also be interested in:
                 </Typography>
-                <RadioGroup
-                  row
-                  value={skillLevel}
-                  onChange={(e) => setSkillLevel(e.target.value)}
-                  className="skill-level-group"
-                >
-                  <FormControlLabel 
-                    value="basic" 
-                    control={<Radio />} 
-                    label="Beginner" 
-                  />
-                  <FormControlLabel
-                    value="intermediate"
-                    control={<Radio />}
-                    label="Intermediate"
-                  />
-                  <FormControlLabel
-                    value="advanced"
-                    control={<Radio />}
-                    label="Advanced"
-                  />
-                </RadioGroup>
-              </Box>
-
-              {/* Duration */}
-              <Box className="form-section">
-                <Typography variant="h6" className="form-section-title">
-                  Study Duration (Optional)
-                </Typography>
-                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                  Set your preferred study time per week, or leave blank for self-paced learning.
-                </Typography>
-                <Stack direction="row" spacing={2} className="duration-inputs">
-                  <TextField
-                    label="Hours"
-                    type="number"
-                    value={hours === "" ? "" : Number(hours)}
-                    onChange={handleHoursChange}
-                    inputProps={{ min: 0, max: 168 }}
-                    fullWidth
-                    helperText="Hours per week"
-                  />
-                  <TextField
-                    label="Minutes"
-                    type="number"
-                    value={minutes === "" ? "" : Number(minutes)}
-                    onChange={handleMinutesChange}
-                    inputProps={{ min: 0, max: 59 }}
-                    fullWidth
-                    helperText="Additional minutes"
-                  />
-                </Stack>
-              </Box>
-
-              {/* Assignment Section - Only for Managers and Super Admins */}
-              {showAssignmentSection && (
-                <>
-                  <Divider sx={{ my: 3 }} />
-                  <Box className="form-section">
-                    <Typography variant="h6" className="form-section-title">
-                      Assignment (Optional)
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                      Assign this roadmap to employees under your management
-                    </Typography>
-                    
-                    {/* Employee Selection */}
-                    <Autocomplete
-                      multiple
-                      options={employees}
-                      value={employees.filter(emp => assignTo.includes(emp.id))}
-                      onChange={(event, newValue) => {
-                        setAssignTo(newValue.map(emp => emp.id));
+                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                  {getContextualSuggestions(selectedTopics).slice(0, 6).map((suggestion) => (
+                    <Chip
+                      key={suggestion}
+                      label={suggestion}
+                      variant="outlined"
+                      size="small"
+                      onClick={() => {
+                        if (!selectedTopics.includes(suggestion)) {
+                          setSelectedTopics([...selectedTopics, suggestion]);
+                        }
                       }}
-                      getOptionLabel={(option) => `${option.name} (${option.email})`}
-                      loading={employeesLoading}
-                      renderInput={(params) => (
-                        <TextField 
-                          {...params} 
-                          label="Assign to employees" 
-                          placeholder="Select employees to assign this roadmap"
-                          helperText="Choose employees who will receive this roadmap assignment"
-                          InputProps={{
-                            ...params.InputProps,
-                            endAdornment: (
-                              <>
-                                {employeesLoading ? <CircularProgress color="inherit" size={20} /> : null}
-                                {params.InputProps.endAdornment}
-                              </>
-                            ),
-                          }}
-                        />
-                      )}
-                      renderTags={(value, getTagProps) =>
-                        value.map((option, index) => {
-                          const { key, ...tagProps } = getTagProps({ index });
-                          return (
-                            <Chip
-                              key={key}
-                              label={option.name}
-                              {...tagProps}
-                              sx={{
-                                background: "linear-gradient(135deg, #1976d2 0%, #42a5f5 100%)",
-                                color: "white",
-                                borderRadius: "16px",
-                                fontWeight: 600,
-                                "& .MuiChip-deleteIcon": {
-                                  color: "rgba(255, 255, 255, 0.8)",
-                                  "&:hover": {
-                                    color: "white",
-                                  },
-                                },
-                              }}
-                            />
-                          );
-                        })
-                      }
+                      sx={{ 
+                        color: darkRed, 
+                        borderColor: darkRed,
+                        transition: 'background-color 0.3s ease-in-out',
+                        '&:hover': {
+                          backgroundColor: 'rgba(160, 20, 65, 0.1)',
+                        }
+                      }}
                     />
-                    
-                    {/* Due Date (Optional) */}
-                    {assignTo.length > 0 && (
-                      <TextField
-                        label="Due Date (Optional)"
-                        type="date"
-                        value={dueDate}
-                        onChange={(e) => setDueDate(e.target.value)}
-                        InputLabelProps={{
-                          shrink: true,
-                        }}
-                        helperText="Set a due date for the assigned roadmap"
-                        sx={{ mt: 2 }}
-                        fullWidth
-                      />
-                    )}
-                  </Box>
-                </>
-              )}
-
-              {/* Submit Button */}
-              <Button 
-                variant="contained" 
-                type="submit" 
-                disabled={loading || !isFormValid}
-                className="submit-button"
-                size="large"
-              >
-                {loading ? (
-                  <>
-                    <CircularProgress size={20} color="inherit" sx={{ mr: 1 }} />
-                    {assignTo.length > 0 ? "Creating & Assigning Roadmap..." : "Creating Your Roadmap..."}
-                  </>
-                ) : (
-                  assignTo.length > 0 ? 
-                    `Create & Assign to ${assignTo.length} Employee${assignTo.length > 1 ? 's' : ''}` :
-                    "Create My Learning Roadmap"
-                )}
-              </Button>
-
-              {loading && (
-                <Box sx={{ textAlign: "center", mt: 2 }}>
-                  <Typography variant="body2" color="text.secondary">
-                    Generating personalized learning path...
-                  </Typography>
+                  ))}
                 </Box>
-              )}
+              </Box>
+            )}
+          </Box>
+          
+          <Divider sx={{ my: 2 }} />
+
+          {/* Skill Level Section */}
+          <Box>
+            <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1, color: darkRed }}>
+                 <SkillIcon fontSize="large" sx={{ color: darkRed }} />
+              <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                Current Skill Level
+              </Typography>
+            </Stack>
+            <FormControl component="fieldset">
+              <RadioGroup
+                row
+                value={skillLevel}
+                onChange={(e) => setSkillLevel(e.target.value)}
+              >
+                <FormControlLabel 
+                  value="basic" 
+                  control={<Radio sx={{ color: darkRed, '&.Mui-checked': { color: darkRed } }} />} 
+                  label="Beginner" 
+                />
+                <FormControlLabel 
+                  value="intermediate" 
+                  control={<Radio sx={{ color: darkRed, '&.Mui-checked': { color: darkRed } }} />} 
+                  label="Intermediate" 
+                />
+                <FormControlLabel 
+                  value="advanced" 
+                  control={<Radio sx={{ color: darkRed, '&.Mui-checked': { color: darkRed } }} />} 
+                  label="Advanced" 
+                />
+              </RadioGroup>
+            </FormControl>
+          </Box>
+
+          <Divider sx={{ my: 2 }} />
+
+          {/* Duration Section */}
+          <Box>
+            <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1, color: darkRed }}>
+              <Typography fontSize="small" sx={{ lineHeight: 1.5, color: darkRed }}>
+                <HoursIcon fontSize="small" sx={{ color: darkRed }} />
+              </Typography>
+              <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                Study Duration (Optional)
+              </Typography>
+            </Stack>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+              Set your preferred study time per week, or leave blank for self-paced learning.
+            </Typography>
+            <Grid container spacing={2}>
+              <Grid component={Box}>
+                <TextField
+                  label="Hours"
+                  type="number"
+                  value={hours === "" ? "" : Number(hours)}
+                  onChange={handleHoursChange}
+                  fullWidth
+                  inputProps={{ min: 0, max: 168 }}
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <Typography sx={{ color: darkRed }}>⌛</Typography>
+                      </InputAdornment>
+                    ),
+                  }}
+                  sx={{
+                    '.MuiOutlinedInput-root': {
+                      transition: 'box-shadow 0.3s ease-in-out',
+                      '&:hover fieldset': {
+                        borderColor: darkRed,
+                      },
+                      '&.Mui-focused fieldset': {
+                        borderColor: darkRed,
+                      }
+                    }
+                  }}
+                />
+              </Grid>
+              <Grid component={Box}>
+                <TextField
+                  label="Minutes"
+                  type="number"
+                  value={minutes === "" ? "" : Number(minutes)}
+                  onChange={handleMinutesChange}
+                  fullWidth
+                  inputProps={{ min: 0, max: 59 }}
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <Typography sx={{ color: darkRed }}>⏲️</Typography>
+                      </InputAdornment>
+                    ),
+                  }}
+                  sx={{
+                    '.MuiOutlinedInput-root': {
+                      transition: 'box-shadow 0.3s ease-in-out',
+                      '&:hover fieldset': {
+                        borderColor: darkRed,
+                      },
+                      '&.Mui-focused fieldset': {
+                        borderColor: darkRed,
+                      }
+                    }
+                  }}
+                />
+              </Grid>
+            </Grid>
+          </Box>
+
+          {/* Assignment Section */}
+          {showAssignmentSection && (
+            <Card variant="outlined" sx={{ my: 3, borderLeft: '4px solid', borderColor: darkRed, borderRadius: 2 }}>
+              <CardContent>
+                <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1, color: darkRed }}>
+                      <AssignmentIcon fontSize="small" sx={{ color: darkRed }} />
+                  <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                    Assignment (Optional)
+                  </Typography>
+                </Stack>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                  Assign this roadmap to employees under your management.
+                </Typography>
+                
+                <Autocomplete
+                  multiple                  
+                  options={employees}
+                  value={employees.filter(emp => assignTo.includes(emp.id))}
+                  onChange={(event, newValue) => setAssignTo(newValue.map(emp => emp.id))}
+                  getOptionLabel={(option) => `${option.name} (${option.email})`}
+                  isOptionEqualToValue={(option, value) => option.id === value.id}
+                  loading={employeesLoading}
+                 renderInput={(params) => (
+  <TextField 
+    {...params} 
+    label="Assign to employees" 
+    placeholder="Select employees to assign"
+    InputProps={{
+      ...params.InputProps,
+      endAdornment: (
+        <>
+          {employeesLoading ? <CircularProgress color="inherit" size={20} /> : null}
+          {params.InputProps.endAdornment}
+        </>
+      ),
+    }}
+    sx={{
+      '& label': {
+        color: '#a01441',
+      },
+      '& label.Mui-focused': {
+        color: '#a01441',
+      },
+      '.MuiOutlinedInput-root': {
+        '& fieldset': {
+          borderColor: '#ccc',
+        },
+        '&:hover fieldset': {
+          borderColor: '#a01441',
+        },
+        '&.Mui-focused fieldset': {
+          borderColor: '#a01441',
+        },
+      },
+      input: {
+        color: '#000', 
+      }
+    }}
+  />
+)}
+                  renderTags={(value, getTagProps) =>
+                    value.map((option, index) => (
+                      <Chip
+                        key={index}
+                        label={option.name}
+                        {...getTagProps({ index })}
+                        variant="filled"
+                        sx={{ 
+                          background: darkRed, 
+                          color: 'white', 
+                          borderRadius: "8px", 
+                          fontWeight: 500,
+                          transition: 'background-color 0.3s ease-in-out',
+                          '&:hover': {
+                            backgroundColor: '#8a113a'
+                          }
+                        }}
+                        avatar={<Avatar sx={{ bgcolor: darkRed }}><Typography sx={{ color: 'white' }}>👤</Typography></Avatar>}
+                      />
+                    ))
+                  }
+                  renderOption={(props, option) => (
+                    <ListItem 
+                      {...props} 
+                      key={option.id}
+                      sx={{ 
+                        transition: 'background-color 0.3s ease-in-out',
+                        '&:hover': {
+                          backgroundColor: 'rgba(160, 20, 65, 0.1)',
+                        }
+                      }}
+                    >
+                      <ListItemAvatar>
+                        <Avatar sx={{ bgcolor: darkRed }}><Typography sx={{ color: 'white' }}>👤</Typography></Avatar>
+                      </ListItemAvatar>
+                      <ListItemText
+                        primary={option.name}
+                        secondary={option.email}
+                      />
+                    </ListItem>
+                  )}
+                />
+                
+                {assignTo.length > 0 && (
+                  <TextField
+                    label="Due Date (Optional)"
+                    type="date"
+                    value={dueDate}
+                    onChange={(e) => setDueDate(e.target.value)}
+                    InputLabelProps={{ shrink: true }}
+                    helperText="Set a due date for the assigned roadmap"
+                    sx={{ 
+                      mt: 2, 
+                      '.MuiOutlinedInput-root': {
+                        transition: 'box-shadow 0.3s ease-in-out',
+                        '&:hover fieldset': {
+                          borderColor: darkRed,
+                        },
+                        '&.Mui-focused fieldset': {
+                          borderColor: darkRed,
+                        }
+                      }
+                    }}
+                    fullWidth
+                  />
+                )}
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Submit Button */}
+          <Button 
+            variant="contained" 
+            size="large"
+            type="submit" 
+            disabled={loading || !isFormValid}
+            startIcon={loading ? <CircularProgress size={20} color="inherit" /> : <Typography sx={{ color: 'white' }}> <CreateRoadmapIcon fontSize="large" sx={{ color: darkRed }} /></Typography>}
+            sx={{ 
+              mt: 2, 
+              py: 1.5, 
+              fontWeight: 600, 
+              borderRadius: 2, 
+              backgroundColor: darkRed, 
+              transition: 'background-color 0.3s ease-in-out',
+              '&:hover': { 
+                backgroundColor: '#8a113a' 
+              } 
+            }}
+          >
+            {loading ? (
+              assignTo.length > 0 ? "Creating & Assigning..." : "Generating Your Roadmap..."
+            ) : (
+              assignTo.length > 0 ? 
+                `Create & Assign to ${assignTo.length} Employee${assignTo.length > 1 ? 's' : ''}` :
+                "Create My Learning Roadmap"
+            )}
+          </Button>
+
+          {/* Loading Text */}
+          {loading && (
+            <Box sx={{ textAlign: "center", mt: 1 }}>
+              <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic' }}>
+                This may take a moment. We're generating your personalized learning path.
+              </Typography>
             </Box>
-          </div>
+          )}
+        </Box>
+      </Paper>
+      
+      {/* Toast notifications */}
+      <Snackbar
+        open={toastOpen}
+        autoHideDuration={4000}
+        onClose={() => setToastOpen(false)}
+        anchorOrigin={{ vertical: "top", horizontal: "center" }}
+      >
+        <Alert
+          severity="warning"
+          onClose={() => setToastOpen(false)}
+          sx={{ width: "100%" }}
+        >
+          Please limit the time to less than 168 hours for efficient learning.
+        </Alert>
+      </Snackbar>
 
-          <Snackbar
-            open={toastOpen}
-            autoHideDuration={4000}
-            onClose={() => setToastOpen(false)}
-            anchorOrigin={{ vertical: "top", horizontal: "center" }}
-            className="warning-snackbar"
-          >
-            <Alert
-              severity="warning"
-              onClose={() => setToastOpen(false)}
-              sx={{ width: "100%" }}
-            >
-              Please limit the time to less than 168 hours for efficient learning.
-            </Alert>
-          </Snackbar>
-
-          <Snackbar
-            open={assignmentToastOpen}
-            autoHideDuration={6000}
-            onClose={() => setAssignmentToastOpen(false)}
-            anchorOrigin={{ vertical: "top", horizontal: "center" }}
-          >
-            <Alert
-              severity="success"
-              onClose={() => setAssignmentToastOpen(false)}
-              sx={{ width: "100%" }}
-            >
-              {assignmentMessage}
-            </Alert>
-          </Snackbar>
-        </Paper>
-      </Container>
-    </div>
+      <Snackbar
+        open={assignmentToastOpen}
+        autoHideDuration={6000}
+        onClose={() => setAssignmentToastOpen(false)}
+        anchorOrigin={{ vertical: "top", horizontal: "center" }}
+      >
+        <Alert
+          severity="success"
+          onClose={() => setAssignmentToastOpen(false)}
+          sx={{ width: "100%", backgroundColor: darkRed, color: 'white' }}
+        >
+          {assignmentMessage}
+        </Alert>
+      </Snackbar>
+    </Container>
   );
 };
 
