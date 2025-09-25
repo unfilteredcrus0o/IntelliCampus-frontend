@@ -84,6 +84,7 @@ const ManagerDashboard: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [currentDate, setCurrentDate] = useState(new Date());
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
+  const [enrollingRoadmapId, setEnrollingRoadmapId] = useState<string | null>(null);
   const searchInputRef = React.useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
   const userRole = getCurrentUserRole();
@@ -360,27 +361,6 @@ useEffect(() => {
     fetchEmployeesData();
   }, []);
 
-  const getStatusColor = (status: string) => {
-    switch (status?.toLowerCase()) {
-      case "assigned":
-        return "warning";
-      case "ready":
-        return "default";
-      case "completed":
-        return "success";
-      case "in progress":
-        return "primary";
-      default:
-        return "default";
-    }
-  };
-
-  const getStatusFromPercentage = (percentage: number, isAssigned: boolean): string => {
-    if (isAssigned && percentage === 0) return "assigned";
-    if (percentage === 0) return "ready";
-    if (percentage === 100) return "completed";
-    return "in progress";
-  };
 
   // Statistics Cards Component
   const StatisticsCards = () => (
@@ -493,6 +473,89 @@ useEffect(() => {
         searchInputRef.current.focus();
       }
     }, 0);
+  };
+
+  const getStatusFromPercentage = (percentage: number, isAssigned: boolean): string => {
+    if (isAssigned && percentage === 0) return "assigned";
+    if (percentage === 0) return "ready";
+    if (percentage === 100) return "completed";
+    return "in progress";
+  };
+
+  const getCardBackgroundColor = (status: string) => {
+    switch (status) {
+      case "completed":
+        return "rgb(79,140,178)";
+      case "in progress":
+        return "rgb(184,33,80)";
+      case "ready":
+        return "rgb(95,95,95)";
+      case "assigned":
+        return "rgb(95,95,95)"; // Same as ready since assigned is read-only
+      default:
+        return "rgb(95,95,95)"; // Default neumorphic color
+    }
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status.toLowerCase()) {
+      case "assigned":
+        return "#ff9800"; // Orange for assigned
+      case "ready":
+        return "darkgrey";
+      case "completed":
+        return "#4984a8";
+      case "in progress":
+        return "#a01441";
+      default:
+        return "#9e9e9e";
+    }
+  };
+
+  const getButtonLabel = (status: string) => {
+    switch (status.toLowerCase()) {
+      case "assigned":
+        return "Start Assigned Course";
+      case "completed":
+        return "Revisit Course";
+      case "in progress":
+        return "Resume";
+      case "ready":
+        return "Start Course";
+      default:
+        return "Continue";
+    }
+  };
+
+  const handleCourseClick = async (course: Enrollment) => {
+    // Navigate directly without any alerts or confirmations
+    // If it's an assigned course that hasn't been started, enroll first
+    if (course.status === 'assigned' && course.progress_percentage === 0) {
+      setEnrollingRoadmapId(course.roadmap_id);
+      try {
+        const response = await makeAuthenticatedRequest(
+          ROADMAP_ENDPOINTS.ENROLL(course.roadmap_id),
+          { method: "POST" }
+        );
+        
+        if (response.ok) {
+          const enrollmentResult = await response.json();
+          // Refresh the manager courses data
+          const updatedCourse = { ...course, status: 'in_progress', progress_percentage: 1 };
+          setManagerCourses(prev => prev.map(c => c.roadmap_id === course.roadmap_id ? updatedCourse : c));
+        } else {
+          const errorData = await response.json();
+          setError(errorData.detail || "Failed to enroll in course");
+        }
+      } catch (err: any) {
+        setError(err.message || "Failed to enroll in course");
+      } finally {
+        setEnrollingRoadmapId(null);
+      }
+    }
+    
+    // Navigate to the roadmap directly
+    navigate(`/roadmap/${course.roadmap_id}`);
   };
 
   // Header Controls Component - Simplified approach
@@ -627,8 +690,8 @@ useEffect(() => {
           ) : managerCourses.filter(course => !isUpcomingCourse(course)).length === 0 ? (
             <Typography align="center" sx={{ color: "rgba(255,255,255,0.7)" }} mt={6}>
               No active courses. Check "Upcoming Courses" section for scheduled courses.
-            </Typography>
-          ) : (
+        </Typography>
+      ) : (
             <>
               {/* Course Cards Scrollable Container */}
               <Box
@@ -649,147 +712,179 @@ useEffect(() => {
                 }}
               >
                 {managerCourses.filter(course => !isUpcomingCourse(course)).map((course) => {
-                  const calculatedStatus = course.status === 'assigned' ? 'assigned' : 
-                    course.progress_percentage === 100 ? 'completed' :
-                    course.progress_percentage > 0 ? 'in progress' : 'ready';
-                  
-                  const getCardBackgroundColor = (status: string) => {
-                    switch (status) {
-                      case "completed":
-                        return "rgb(79,140,178)";
-                      case "in progress":
-                        return "rgb(184,33,80)";
-                      case "ready":
-                        return "rgb(95,95,95)";
-                      case "assigned":
-                        return "rgb(95,95,95)";
-                      default:
-                        return "rgb(95,95,95)";
-                    }
-                  };
-
-                  return (
-                    <Card
+                  const calculatedStatus = getStatusFromPercentage(course.progress_percentage || 0, course.status === 'assigned');
+            return (
+                <Card
                       key={course.roadmap_id}
-                      sx={{
+                      onClick={() => handleCourseClick(course)}
+                  sx={{
                         minWidth: 320,
                         width: 320,
                         height: 180,
-                        borderRadius: 3,
+                    borderRadius: 3,
                         background: getCardBackgroundColor(calculatedStatus),
                         boxShadow: `
                           8px 8px 16px rgba(163, 177, 198, 0.6),
                           -8px -8px 16px rgba(255, 255, 255, 0.8)
                         `,
-                        cursor: "pointer",
+                    cursor: "pointer",
                         transition: "all 0.3s ease",
                         position: "relative",
                         overflow: "hidden",
                         flexShrink: 0,
-                        "&:hover": {
+                    "&:hover": {
                           boxShadow: `
                             12px 12px 24px rgba(163, 177, 198, 0.8),
                             -12px -12px 24px rgba(255, 255, 255, 0.9)
                           `,
                           transform: "translateY(-2px)",
-                        },
+                    },
+                  }}
+                >
+                      <CardContent sx={{ p: 3, display: "flex", flexDirection: "column", position: "relative" }}>
+                        {/* Top Right Shiny White Caret/Arrow */}
+                    <Box
+                          onClick={(e: React.MouseEvent) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            handleCourseClick(course);
+                          }}
+                      sx={{
+                        position: "absolute",
+                        top: 16,
+                        right: 16,
+                            width: 32,
+                            height: 32,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        cursor: "pointer",
+                            zIndex: 2,
+                            backgroundColor: "rgba(255, 255, 255, 0.2)",
+                          borderRadius: "50%",
+                            backdropFilter: "blur(8px)",
+                            border: "1px solid rgba(255, 255, 255, 0.3)",
+                            boxShadow: "0 2px 8px rgba(0, 0, 0, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.4)",
+                            transition: "all 0.3s ease",
+                            "&:hover": {
+                              backgroundColor: "rgba(255, 255, 255, 0.3)",
+                              transform: "scale(1.1)",
+                              boxShadow: "0 4px 12px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.6)",
+                            }
+                          }}
+                        >
+                          {enrollingRoadmapId === course.roadmap_id ? (
+                            <CircularProgress size={18} sx={{ color: "white" }} />
+                          ) : (
+                            <PlayArrow sx={{ 
+                              color: "white", 
+                              fontSize: 20,
+                              filter: "drop-shadow(0 1px 2px rgba(0, 0, 0, 0.3))"
+                            }} />
+                          )}
+                        </Box>
+
+                        {/* Course Title */}
+                    <Typography
+                      variant="h6"
+                      sx={{
+                        fontWeight: 600,
+                            color: (calculatedStatus === "completed" || calculatedStatus === "in progress" || calculatedStatus === "ready" || calculatedStatus === "assigned") ? "white" : "#333",
+                            mb: 1.5,
+                        fontSize: "1.1rem",
+                        lineHeight: 1.3,
+                            pr: 4,
+                            minHeight: "2.6rem",
+                        display: "-webkit-box",
+                        WebkitLineClamp: 2,
+                        WebkitBoxOrient: "vertical",
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
                       }}
                     >
-                      <CardContent sx={{ p: 3, display: "flex", flexDirection: "column" }}>
-                        {/* Course Title with Arrow on same line */}
-                        <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 1 }}>
-                          <Typography
-                            variant="h6" 
-                            sx={{
-                              fontWeight: 600, 
-                              color: "white",
-                              fontSize: "1.1rem",
-                              lineHeight: 1.3,
-                              flex: 1
+                          {course.title || "Course"}
+                    </Typography>
+                    
+                        {/* Status and Topics Info */}
+                        <Box sx={{ mb: 2 }}>
+                    <Typography
+                      variant="body2"
+                      sx={{
+                              color: (calculatedStatus === "completed" || calculatedStatus === "in progress" || calculatedStatus === "ready" || calculatedStatus === "assigned") ? "rgba(255,255,255,0.9)" : "#666", 
+                              fontSize: "0.85rem",
+                              mb: 0.5,
+                              display: "flex",
+                              alignItems: "center",
+                              "&::before": {
+                                content: '"•"',
+                                marginRight: 1,
+                                color: (calculatedStatus === "completed" || calculatedStatus === "in progress" || calculatedStatus === "ready" || calculatedStatus === "assigned") ? "rgba(255,255,255,0.7)" : getStatusColor(calculatedStatus),
+                                fontWeight: "bold",
+                                fontSize: "0.8rem",
+                              }
                             }}
                           >
-                            {course.title}
-                          </Typography>
-                          <PlayArrow 
-                            sx={{ 
-                              color: "white",
-                              fontSize: 24,
-                              cursor: "pointer",
-                              ml: 1
-                            }} 
-                          />
-                        </Box>
-                        
-                        {/* Status and Topics */}
-                        <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 2 }}>
-                          <Typography
-                            variant="body2" 
-                            sx={{
-                              color: "rgba(255,255,255,0.9)",
-                              fontSize: "0.9rem",
-                              textTransform: "capitalize"
-                            }}
-                          >
-                            {calculatedStatus}
+                            Status: {calculatedStatus === "in progress" ? "In Progress" : calculatedStatus.charAt(0).toUpperCase() + calculatedStatus.slice(1)}
                           </Typography>
                           <Typography
                             variant="body2"
                             sx={{
-                              color: "rgba(255,255,255,0.8)",
-                              fontSize: "0.85rem"
+                              color: (calculatedStatus === "completed" || calculatedStatus === "in progress" || calculatedStatus === "ready" || calculatedStatus === "assigned") ? "rgba(255,255,255,0.9)" : "#666", 
+                              fontSize: "0.85rem",
+                              display: "flex",
+                              alignItems: "center",
+                              "&::before": {
+                                content: '"•"',
+                                marginRight: 1,
+                                color: (calculatedStatus === "completed" || calculatedStatus === "in progress" || calculatedStatus === "ready" || calculatedStatus === "assigned") ? "rgba(255,255,255,0.7)" : getStatusColor(calculatedStatus),
+                                fontWeight: "bold",
+                                fontSize: "0.8rem",
+                              }
                             }}
                           >
                             {course.total_topics ? 
                               `${course.total_topics - Math.ceil((course.progress_percentage || 0) * course.total_topics / 100)} topics left` :
-                              "Topics loading..."
+                              "24 topics left"
                             }
-                          </Typography>
-                        </Box>
+                    </Typography>
+                  </Box>
 
-                        {/* Progress Section */}
-                        <Box sx={{ mt: "auto" }}>
-                          <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 1 }}>
-                            <Typography 
-                              variant="body2" 
-                              sx={{ 
-                                color: "rgba(255,255,255,0.9)",
-                                fontSize: "0.85rem" 
-                              }}
-                            >
-                              Progress
-                            </Typography>
-                            <Typography 
-                              variant="body2" 
-                              sx={{
-                                color: "white",
-                                fontWeight: 600,
-                                fontSize: "0.9rem"
-                              }}
-                            >
-                              {course.progress_percentage || 0}%
-                            </Typography>
-                          </Box>
-                          
+                        {/* Progress Bar and Percentage on Same Line */}
+                        <Box sx={{ mt: "auto", mb: 0.5, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                           {/* Progress Bar */}
                           <Box 
                             sx={{ 
-                              width: "100%", 
+                              width: "70%", 
                               height: 6, 
-                              backgroundColor: "rgba(255,255,255,0.2)", 
+                              backgroundColor: "rgba(255, 255, 255, 0.2)",
                               borderRadius: 3,
-                              overflow: "hidden"
+                              overflow: "hidden",
+                              position: "relative"
                             }}
                           >
                             <Box 
-                              sx={{ 
-                                height: "100%", 
-                                backgroundColor: "rgba(255,255,255,0.9)",
+                    sx={{
                                 width: `${course.progress_percentage || 0}%`,
+                                height: "100%",
+                                backgroundColor: "white",
                                 borderRadius: 3,
                                 transition: "width 0.3s ease"
-                              }} 
+                              }}
                             />
                           </Box>
+                          
+                          {/* Percentage Text */}
+                          <Typography
+                            variant="h2" 
+                            sx={{
+                              fontWeight: 700, 
+                              color: (calculatedStatus === "completed" || calculatedStatus === "in progress" || calculatedStatus === "ready" || calculatedStatus === "assigned") ? "white" : "#333",
+                              fontSize: "1.2rem",
+                              lineHeight: 0.9,
+                            }}
+                          >
+                            {course.progress_percentage || 0}%
+                          </Typography>
                         </Box>
                       </CardContent>
                     </Card>
@@ -1264,16 +1359,16 @@ useEffect(() => {
                             </Box>
                           </Box>
                         ))}
-                    </Box>
-                  )}
+        </Box>
+      )}
                 </Box>
               </Paper>
             </Box>
 
           </Box>
         </Box>
-      </Box>
-    );
+    </Box>
+  );
   };
 
   // Team Progress Tab Component
@@ -1370,7 +1465,7 @@ useEffect(() => {
                         />
                         <Typography variant="body2" sx={{ fontWeight: 600, color: "#333", minWidth: "40px" }}>
                           {employee.totalProgress}%
-                    </Typography>
+                </Typography>
                       </Box>
                     </TableCell>
                     
