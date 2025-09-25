@@ -18,6 +18,9 @@ import {
   FormControl,
   FormLabel,
   Divider,
+  Card,
+  CardContent,
+  Avatar,
 } from "@mui/material";
 import * as Constants from "../../constants";
 import { useNavigate } from "react-router-dom";
@@ -109,6 +112,11 @@ const RoadmapScreen: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [assignmentToastOpen, setAssignmentToastOpen] = useState(false);
   const [assignmentMessage, setAssignmentMessage] = useState("");
+  const [dateError, setDateError] = useState<string | null>(null);
+  
+  // Date-related state
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
   
   // Assignment-related state
   const [assignTo, setAssignTo] = useState<string[]>([]);
@@ -182,9 +190,29 @@ const RoadmapScreen: React.FC = () => {
     }
   };
 
+  // Date validation effect
+  useEffect(() => {
+    if (!startDate || !endDate) {
+      setDateError(null);
+      return;
+    }
+    if (new Date(endDate) < new Date(startDate)) {
+      setDateError("End date cannot be before start date");
+    } else {
+      setDateError(null);
+    }
+  }, [startDate, endDate]);
+
+  // Simple validation function that doesn't update state
+  const isDateValid = () => {
+    if (!startDate || !endDate) return true;
+    return new Date(endDate) >= new Date(startDate);
+  };
+
   const isFormValid =
   selectedTopics.length > 0 &&
-  skillLevel !== "";
+  skillLevel !== "" &&
+  isDateValid();
 
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -201,6 +229,8 @@ const RoadmapScreen: React.FC = () => {
       skillLevel,
       duration: formattedDuration,
       title: `${selectedTopics.join(", ")} Learning Roadmap`,
+      ...(showAssignmentSection && startDate && { start_date: startDate }),
+      ...(showAssignmentSection && endDate && { end_date: endDate }),
     };
 
     try {
@@ -309,27 +339,61 @@ const RoadmapScreen: React.FC = () => {
 
   return (
     <div className="roadmap-container">
-      <Container maxWidth="sm">
-        <Paper elevation={4} className="roadmap-form-paper">
-          <div className="roadmap-header">
-            <Typography variant="h4" component="h1">
-              Roadmap Builder
-            </Typography>
-          </div>
+      <Container maxWidth="lg">
+         <Box sx={{ 
+           display: "flex", 
+           gap: 3, 
+           minHeight: "auto",
+           flexDirection: { xs: "column", md: "row" }
+         }}>
+           {/* Left Panel - Configuration Form */}
+           <Box sx={{ flex: 2 }}>
+             <Paper 
+               elevation={0} 
+               sx={{ 
+                 p: 3, 
+                 borderRadius: 3,
+                 background: "rgb(240,240,242)",
+                 boxShadow: `
+                   8px 8px 16px rgba(163, 177, 198, 0.6),
+                   -8px -8px 16px rgba(255, 255, 255, 0.8)
+                 `,
+                 border: "none"
+               }}
+             >
+               <Typography 
+                 variant="h6" 
+                 sx={{ 
+                   fontWeight: 600, 
+                   color: "#2c3e50", 
+                   mb: 3,
+                   fontSize: "1.3rem"
+                 }}
+               >
+                 Configure Your Roadmap
+               </Typography>
 
-          <div className="roadmap-form-content">
+
             <Box
               component="form"
               onSubmit={handleSubmit}
-              sx={{ display: "flex", flexDirection: "column", gap: 2 }}
+                 sx={{ display: "flex", flexDirection: "column", gap: 2.5 }}
             >
+
               {/* Topics Selection */}
-              <Box className="form-section">
-                <Typography variant="h6" className="form-section-title">
-                  Select Learning Topics
+                 <Box>
+                   <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, mb: 1 }}>
+                     <img 
+                       src="https://cdn-icons-png.flaticon.com/512/3145/3145765.png" 
+                       alt="Topics"
+                       style={{ width: '20px', height: '20px' }}
+                     />
+                     <Typography variant="h6" sx={{ fontWeight: 600, color: "#2c3e50", fontSize: "1rem" }}>
+                       Learning Topics
                 </Typography>
-                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                  Choose from suggested topics or type your own. Our AI will create a personalized roadmap for any learning topic!
+                   </Box>
+                   <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
+                     Select learning topics
                 </Typography>
                 <Autocomplete
                   multiple
@@ -452,43 +516,75 @@ const RoadmapScreen: React.FC = () => {
               </Box>
 
               {/* Skill Level */}
-              <Box className="form-section">
-                <Typography variant="h6" className="form-section-title">
-                  Current Skill Level
+                 <Box>
+                   <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, mb: 1.5 }}>
+                     <img 
+                       src="https://cdn-icons-png.flaticon.com/512/3135/3135715.png" 
+                       alt="Skill Level"
+                       style={{ width: '20px', height: '20px' }}
+                     />
+                     <Typography variant="h6" sx={{ fontWeight: 600, color: "#2c3e50", fontSize: "1rem" }}>
+                       Skill Level
                 </Typography>
+                   </Box>
                 <RadioGroup
                   row
                   value={skillLevel}
                   onChange={(e) => setSkillLevel(e.target.value)}
-                  className="skill-level-group"
+                    sx={{ gap: 2 }}
                 >
                   <FormControlLabel 
                     value="basic" 
-                    control={<Radio />} 
+                      control={<Radio sx={{ color: "#4a90e2", "&.Mui-checked": { color: "#4a90e2" } }} />} 
                     label="Beginner" 
+                      sx={{ 
+                        "& .MuiFormControlLabel-label": { 
+                          fontSize: "0.95rem",
+                          fontWeight: 500
+                        }
+                      }}
                   />
                   <FormControlLabel
                     value="intermediate"
-                    control={<Radio />}
+                      control={<Radio sx={{ color: "#4a90e2", "&.Mui-checked": { color: "#4a90e2" } }} />}
                     label="Intermediate"
+                      sx={{ 
+                        "& .MuiFormControlLabel-label": { 
+                          fontSize: "0.95rem",
+                          fontWeight: 500
+                        }
+                      }}
                   />
                   <FormControlLabel
                     value="advanced"
-                    control={<Radio />}
+                      control={<Radio sx={{ color: "#4a90e2", "&.Mui-checked": { color: "#4a90e2" } }} />}
                     label="Advanced"
+                      sx={{ 
+                        "& .MuiFormControlLabel-label": { 
+                          fontSize: "0.95rem",
+                          fontWeight: 500
+                        }
+                      }}
                   />
                 </RadioGroup>
               </Box>
 
               {/* Duration */}
-              <Box className="form-section">
-                <Typography variant="h6" className="form-section-title">
+                 <Box>
+                   <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, mb: 1 }}>
+                     <img 
+                       src="https://cdn-icons-png.flaticon.com/512/2784/2784459.png" 
+                       alt="Duration"
+                       style={{ width: '20px', height: '20px' }}
+                     />
+                     <Typography variant="h6" sx={{ fontWeight: 600, color: "#2c3e50", fontSize: "1rem" }}>
                   Study Duration (Optional)
                 </Typography>
-                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                   </Box>
+                   <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
                   Set your preferred study time per week, or leave blank for self-paced learning.
                 </Typography>
-                <Stack direction="row" spacing={2} className="duration-inputs">
+                  <Stack direction="row" spacing={2}>
                   <TextField
                     label="Hours"
                     type="number"
@@ -497,6 +593,11 @@ const RoadmapScreen: React.FC = () => {
                     inputProps={{ min: 0, max: 168 }}
                     fullWidth
                     helperText="Hours per week"
+                      sx={{
+                        "& .MuiOutlinedInput-root": {
+                          borderRadius: 2,
+                        }
+                      }}
                   />
                   <TextField
                     label="Minutes"
@@ -506,23 +607,89 @@ const RoadmapScreen: React.FC = () => {
                     inputProps={{ min: 0, max: 59 }}
                     fullWidth
                     helperText="Additional minutes"
+                      sx={{
+                        "& .MuiOutlinedInput-root": {
+                          borderRadius: 2,
+                        }
+                      }}
                   />
                 </Stack>
               </Box>
 
+              {/* Roadmap Timeline - Only for Managers and Super Admins */}
+              {showAssignmentSection && (
+                <Box>
+                  <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, mb: 1 }}>
+                    <img 
+                      src="https://cdn-icons-png.flaticon.com/512/2693/2693507.png" 
+                      alt="Timeline"
+                      style={{ width: '20px', height: '20px' }}
+                    />
+                    <Typography variant="h6" sx={{ fontWeight: 600, color: "#2c3e50", fontSize: "1rem" }}>
+                      Roadmap Timeline (Optional)
+                    </Typography>
+                  </Box>
+                  <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
+                    Set start and end dates for the roadmap timeline.
+                  </Typography>
+                  <Stack direction="row" spacing={2}>
+                    <TextField
+                      label="Start Date"
+                      type="date"
+                      value={startDate}
+                      onChange={(e) => setStartDate(e.target.value)}
+                      fullWidth
+                      InputLabelProps={{
+                        shrink: true,
+                      }}
+                      error={!!dateError}
+                      sx={{
+                        "& .MuiOutlinedInput-root": {
+                          borderRadius: 2,
+                        }
+                      }}
+                    />
+                    <TextField
+                      label="End Date"
+                      type="date"
+                      value={endDate}
+                      onChange={(e) => setEndDate(e.target.value)}
+                      fullWidth
+                      InputLabelProps={{
+                        shrink: true,
+                      }}
+                      inputProps={{
+                        min: startDate || undefined,
+                      }}
+                      error={!!dateError}
+                      helperText={dateError}
+                      sx={{
+                        "& .MuiOutlinedInput-root": {
+                          borderRadius: 2,
+                        }
+                      }}
+                    />
+                  </Stack>
+                </Box>
+              )}
+
               {/* Assignment Section - Only for Managers and Super Admins */}
               {showAssignmentSection && (
-                <>
-                  <Divider sx={{ my: 3 }} />
-                  <Box className="form-section">
-                    <Typography variant="h6" className="form-section-title">
-                      Assignment (Optional)
+                   <Box>
+                     <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, mb: 1 }}>
+                       <img 
+                         src="https://cdn-icons-png.flaticon.com/512/1077/1077114.png" 
+                         alt="Assign"
+                         style={{ width: '20px', height: '20px' }}
+                       />
+                       <Typography variant="h6" sx={{ fontWeight: 600, color: "#2c3e50", fontSize: "1rem" }}>
+                         Assign To
                     </Typography>
-                    <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                      Assign this roadmap to employees under your management
+                     </Box>
+                     <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
+                       Select employees
                     </Typography>
                     
-                    {/* Employee Selection */}
                     <Autocomplete
                       multiple
                       options={employees}
@@ -530,14 +697,17 @@ const RoadmapScreen: React.FC = () => {
                       onChange={(event, newValue) => {
                         setAssignTo(newValue.map(emp => emp.id));
                       }}
-                      getOptionLabel={(option) => `${option.name} (${option.email})`}
+                      getOptionLabel={(option) => option.name}
                       loading={employeesLoading}
                       renderInput={(params) => (
                         <TextField 
                           {...params} 
-                          label="Assign to employees" 
-                          placeholder="Select employees to assign this roadmap"
-                          helperText="Choose employees who will receive this roadmap assignment"
+                          placeholder="Select employees"
+                          sx={{
+                            "& .MuiOutlinedInput-root": {
+                              borderRadius: 2,
+                            }
+                          }}
                           InputProps={{
                             ...params.InputProps,
                             endAdornment: (
@@ -549,87 +719,331 @@ const RoadmapScreen: React.FC = () => {
                           }}
                         />
                       )}
-                      renderTags={(value, getTagProps) =>
-                        value.map((option, index) => {
-                          const { key, ...tagProps } = getTagProps({ index });
-                          return (
-                            <Chip
-                              key={key}
-                              label={option.name}
-                              {...tagProps}
-                              sx={{
-                                background: "linear-gradient(135deg, #1976d2 0%, #42a5f5 100%)",
-                                color: "white",
-                                borderRadius: "16px",
-                                fontWeight: 600,
-                                "& .MuiChip-deleteIcon": {
-                                  color: "rgba(255, 255, 255, 0.8)",
-                                  "&:hover": {
-                                    color: "white",
-                                  },
-                                },
-                              }}
-                            />
-                          );
-                        })
-                      }
                     />
-                    
-                    {/* Due Date (Optional) */}
-                    {assignTo.length > 0 && (
-                      <TextField
-                        label="Due Date (Optional)"
-                        type="date"
-                        value={dueDate}
-                        onChange={(e) => setDueDate(e.target.value)}
-                        InputLabelProps={{
-                          shrink: true,
-                        }}
-                        helperText="Set a due date for the assigned roadmap"
-                        sx={{ mt: 2 }}
-                        fullWidth
+                  </Box>
+                )}
+
+              </Box>
+            </Paper>
+          </Box>
+
+           {/* Right Panel - Roadmap Summary */}
+           <Box sx={{ flex: 1, maxWidth: "350px" }}>
+             <Paper 
+               elevation={0} 
+               sx={{ 
+                 p: 3, 
+                 borderRadius: 3,
+                 background: "rgb(240,240,242)",
+                 boxShadow: `
+                   8px 8px 16px rgba(163, 177, 198, 0.6),
+                   -8px -8px 16px rgba(255, 255, 255, 0.8)
+                 `,
+                 border: "none"
+               }}
+             >
+               <Typography 
+                 variant="h6" 
+                              sx={{
+                                fontWeight: 600,
+                   color: "#2c3e50", 
+                   mb: 2,
+                   fontSize: "1.2rem"
+                 }}
+               >
+                 Roadmap Summary
+               </Typography>
+               
+               <Typography 
+                 variant="body2" 
+                 sx={{ 
+                   color: "#666", 
+                   mb: 3,
+                   fontSize: "0.85rem"
+                 }}
+               >
+                 {new Date().toLocaleDateString('en-US', { 
+                   weekday: 'long', 
+                   month: 'short', 
+                   day: 'numeric' 
+                 })}
+               </Typography>
+
+               {/* Summary Cards */}
+               <Stack spacing={2}>
+                {/* Timeline Dates - Only show for Managers and Super Admins */}
+                {showAssignmentSection && (startDate || endDate) && (
+                  <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+                    <Box 
+                      sx={{ 
+                        width: 32, 
+                        height: 32, 
+                        backgroundColor: "#4a90e2", 
+                        borderRadius: "8px",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center"
+                      }} 
+                    >
+                      <img 
+                        src="https://cdn-icons-png.flaticon.com/512/2693/2693507.png" 
+                        alt="Calendar"
+                        style={{ width: '18px', height: '18px', filter: 'brightness(0) invert(1)' }}
                       />
+                    </Box>
+                    <Box>
+                      <Typography variant="body2" sx={{ color: "#666", fontSize: "0.9rem" }}>
+                        Timeline:
+                      </Typography>
+                      <Typography variant="body1" sx={{ fontWeight: 600, color: "#2c3e50" }}>
+                        {startDate && endDate 
+                          ? `${new Date(startDate).toLocaleDateString('en-US', { 
+                              month: 'short', 
+                              day: 'numeric' 
+                            })} - ${new Date(endDate).toLocaleDateString('en-US', { 
+                              month: 'short', 
+                              day: 'numeric' 
+                            })}`
+                          : startDate 
+                            ? `From ${new Date(startDate).toLocaleDateString('en-US', { 
+                                month: 'short', 
+                                day: 'numeric' 
+                              })}`
+                            : endDate
+                              ? `Until ${new Date(endDate).toLocaleDateString('en-US', { 
+                                  month: 'short', 
+                                  day: 'numeric' 
+                                })}`
+                              : "Not set"
+                        }
+                      </Typography>
+                    </Box>
+                  </Box>
+                )}
+
+                {/* Topics Selected */}
+                <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+                  <Box 
+                    sx={{ 
+                      width: 32, 
+                      height: 32, 
+                      backgroundColor: "#27ae60", 
+                      borderRadius: "8px",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center"
+                    }} 
+                  >
+                    <img 
+                      src="https://cdn-icons-png.flaticon.com/512/3145/3145765.png" 
+                      alt="Topics"
+                      style={{ width: '18px', height: '18px', filter: 'brightness(0) invert(1)' }}
+                    />
+                  </Box>
+                  <Box>
+                    <Typography variant="body2" sx={{ color: "#666", fontSize: "0.9rem" }}>
+                      Topics Selected:
+                    </Typography>
+                    <Typography variant="body1" sx={{ fontWeight: 600, color: "#2c3e50" }}>
+                      {selectedTopics.length} selected
+                    </Typography>
+                  </Box>
+                </Box>
+
+                {/* Skill Level */}
+                <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+                  <Box 
+                    sx={{ 
+                      width: 32, 
+                      height: 32, 
+                      backgroundColor: "#f39c12", 
+                      borderRadius: "8px",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center"
+                    }} 
+                  >
+                    <img 
+                      src="https://cdn-icons-png.flaticon.com/512/3135/3135715.png" 
+                      alt="Skill Level"
+                      style={{ width: '18px', height: '18px', filter: 'brightness(0) invert(1)' }}
+                    />
+                  </Box>
+                  <Box>
+                    <Typography variant="body2" sx={{ color: "#666", fontSize: "0.9rem" }}>
+                      Skill Level:
+                    </Typography>
+                    <Typography variant="body1" sx={{ fontWeight: 600, color: "#2c3e50" }}>
+                      {skillLevel ? skillLevel.charAt(0).toUpperCase() + skillLevel.slice(1) : "Not selected"}
+                    </Typography>
+                  </Box>
+                </Box>
+
+                {/* Study Duration */}
+                <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+                  <Box 
+                    sx={{ 
+                      width: 32, 
+                      height: 32, 
+                      backgroundColor: "#e74c3c", 
+                      borderRadius: "8px",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center"
+                    }} 
+                  >
+                    <img 
+                      src="https://cdn-icons-png.flaticon.com/512/2784/2784459.png" 
+                      alt="Clock"
+                      style={{ width: '18px', height: '18px', filter: 'brightness(0) invert(1)' }}
+                    />
+                  </Box>
+                  <Box>
+                    <Typography variant="body2" sx={{ color: "#666", fontSize: "0.9rem" }}>
+                      Study Duration:
+                    </Typography>
+                    <Typography variant="body1" sx={{ fontWeight: 600, color: "#2c3e50" }}>
+                      {hours || minutes ? 
+                        `${hours || 0}h ${minutes || 0}m per week` : 
+                        "Self-paced"
+                      }
+                    </Typography>
+                  </Box>
+                </Box>
+
+                {/* Assign To */}
+                {showAssignmentSection && (
+                  <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+                    <Box 
+                      sx={{ 
+                        width: 8, 
+                        height: 8, 
+                        backgroundColor: "#4a90e2", 
+                        borderRadius: "50%" 
+                      }} 
+                    />
+                    <Box>
+                      <Typography variant="body2" sx={{ color: "#666", fontSize: "0.9rem" }}>
+                        Assign To:
+                      </Typography>
+                      <Box sx={{ display: "flex", alignItems: "center", gap: 1, mt: 0.5 }}>
+                        {assignTo.length > 0 ? (
+                          <>
+                            <Box 
+                              sx={{ 
+                                backgroundColor: "#4a90e2", 
+                                color: "white", 
+                                borderRadius: "50%", 
+                                width: 24, 
+                                height: 24, 
+                                display: "flex", 
+                                alignItems: "center", 
+                                justifyContent: "center", 
+                                fontSize: "0.75rem", 
+                                fontWeight: 600 
+                              }}
+                            >
+                              +{assignTo.length}
+                            </Box>
+                            <Typography variant="body1" sx={{ fontWeight: 600, color: "#2c3e50", ml: 1 }}>
+                              {assignTo.length} employee{assignTo.length > 1 ? 's' : ''}
+                            </Typography>
+                          </>
+                        ) : (
+                          <Typography variant="body1" sx={{ fontWeight: 600, color: "#2c3e50" }}>
+                            None selected
+                          </Typography>
+                        )}
+                      </Box>
+                      
+                      {/* Show selected employee avatars */}
+                      {assignTo.length > 0 && assignTo.length <= 6 && (
+                        <Box sx={{ display: "flex", gap: 1, mt: 1, flexWrap: "wrap" }}>
+                          {employees
+                            .filter(emp => assignTo.includes(emp.id))
+                            .map((employee, index) => (
+                              <Box key={employee.id} sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                                <Avatar 
+                                  sx={{ 
+                                    width: 32, 
+                                    height: 32, 
+                                    fontSize: "0.8rem",
+                                    backgroundColor: "#4a90e2"
+                                  }}
+                                >
+                                  {employee.name.split(' ').map(n => n[0]).join('').toUpperCase()}
+                                </Avatar>
+                                <Typography variant="caption" sx={{ color: "#666" }}>
+                                  {employee.name.split(' ')[0]}
+                                </Typography>
+                              </Box>
+                            ))}
+                        </Box>
                     )}
                   </Box>
-                </>
+                  </Box>
               )}
+              </Stack>
 
-              {/* Submit Button */}
+               {/* Create Roadmap Button */}
+               <Box sx={{ mt: 3 }}>
               <Button 
                 variant="contained" 
-                type="submit" 
+                  onClick={handleSubmit}
                 disabled={loading || !isFormValid}
-                className="submit-button"
-                size="large"
+                  fullWidth
+                  size="medium"
+                  sx={{
+                    backgroundColor: "#4a90e2",
+                    borderRadius: 2,
+                    py: 1,
+                    fontSize: "0.95rem",
+                    fontWeight: 600,
+                    textTransform: "none",
+                    boxShadow: "0 2px 8px rgba(74, 144, 226, 0.25)",
+                    "&:hover": {
+                      backgroundColor: "#357abd",
+                      boxShadow: "0 3px 12px rgba(74, 144, 226, 0.3)",
+                    },
+                    "&:disabled": {
+                      backgroundColor: "#ccc",
+                      boxShadow: "none",
+                    }
+                  }}
               >
                 {loading ? (
                   <>
                     <CircularProgress size={20} color="inherit" sx={{ mr: 1 }} />
-                    {assignTo.length > 0 ? "Creating & Assigning Roadmap..." : "Creating Your Roadmap..."}
+                      Creating Roadmap...
                   </>
                 ) : (
-                  assignTo.length > 0 ? 
-                    `Create & Assign to ${assignTo.length} Employee${assignTo.length > 1 ? 's' : ''}` :
-                    "Create My Learning Roadmap"
+                    "Create Roadmap"
                 )}
               </Button>
 
               {loading && (
-                <Box sx={{ textAlign: "center", mt: 2 }}>
-                  <Typography variant="body2" color="text.secondary">
+                  <Typography 
+                    variant="body2" 
+                    sx={{ 
+                      color: "#666", 
+                      textAlign: "center", 
+                      mt: 2,
+                      fontSize: "0.9rem"
+                    }}
+                  >
                     Generating personalized learning path...
                   </Typography>
-                </Box>
               )}
             </Box>
-          </div>
+            </Paper>
+          </Box>
+        </Box>
 
           <Snackbar
             open={toastOpen}
             autoHideDuration={4000}
             onClose={() => setToastOpen(false)}
             anchorOrigin={{ vertical: "top", horizontal: "center" }}
-            className="warning-snackbar"
           >
             <Alert
               severity="warning"
@@ -654,7 +1068,6 @@ const RoadmapScreen: React.FC = () => {
               {assignmentMessage}
             </Alert>
           </Snackbar>
-        </Paper>
       </Container>
     </div>
   );

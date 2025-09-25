@@ -22,14 +22,14 @@
   font-weight: bold !important;
   margin-bottom: 16px !important;
   letter-spacing: 0.1em !important;
-  font-family: 'Inter', sans-serif !important;
+  font-family: 'Poppins', sans-serif !important;
 }
 
 .signin-description {
   color: #666 !important;
   margin-bottom: 24px !important;
   text-align: center !important;
-  font-family: 'Inter', sans-serif !important;
+  font-family: 'Poppins', sans-serif !important;
 }
 
 .signin-success-alert {
@@ -65,7 +65,7 @@
   font-weight: bold !important;
   border-radius: 4px !important;
   text-transform: none !important;
-  font-family: 'Inter', sans-serif !important;
+  font-family: 'Poppins', sans-serif !important;
 }
 
 .signin-submit-button:hover {
@@ -76,7 +76,7 @@
   text-align: center !important;
   margin-top: 16px !important;
   color: #666 !important;
-  font-family: 'Inter', sans-serif !important;
+  font-family: 'Poppins', sans-serif !important;
 }
 
 .signin-signup-link {
@@ -84,7 +84,7 @@
   color: #8B1538 !important;
   font-weight: bold !important;
   text-decoration: none !important;
-  font-family: 'Inter', sans-serif !important;
+  font-family: 'Poppins', sans-serif !important;
 }
 
 .signin-signup-link:hover {
