@@ -13,13 +13,15 @@ import RoleProtectedRoute from '../components/RoleProtectedRoute';
 import SuperAdminDashboard from '../DashBoard/SuperAdminDashboard';
 import ManagerDashboard from '../DashBoard/ManagerDashboard';
 import EmployeeDashboard from '../DashBoard/EmployeeDashboard';
+import ProfileSettings from '../components/ProfileSettings';
+import '../componenets/layout/Navbar.css';
 
 function AppRoutes() {
   return (
     <div>
       <Router>
       <NavTabs />
-      <div>
+      <div className="main-content-container">
         <Routes>
           <Route path="/" element={<HomePage/>} />
           <Route path="/login" element={<SignIn/>} />
@@ -58,6 +60,11 @@ function AppRoutes() {
           <Route path="/roadmap/:roadmapId" element={
             <ProtectedRoute>
               <RoadmapDetails />
+            </ProtectedRoute>
+          } />
+          <Route path="/profile-settings" element={
+            <ProtectedRoute>
+              <ProfileSettings />
             </ProtectedRoute>
           } />
           

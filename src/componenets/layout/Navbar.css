@@ -1,49 +1,65 @@
 .navbar-appbar {
   background-color: #a01441 !important;
-  border-bottom: 3px solid rgba(255, 255, 255, 0.2) !important;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15), 0 1px 3px rgba(0, 0, 0, 0.1) !important;
-  position: relative !important;
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  z-index: 1200 !important;
+  width: 100% !important;
+  height: 48px !important;
+  min-height: 48px !important;
 }
 
-.navbar-appbar::after {
-  content: '';
-  position: absolute;
-  bottom: -3px;
-  left: 0;
-  right: 0;
-  height: 3px;
-  background: linear-gradient(90deg, 
-    transparent 0%, 
-    rgba(255, 255, 255, 0.3) 25%, 
-    rgba(255, 255, 255, 0.5) 50%, 
-    rgba(255, 255, 255, 0.3) 75%, 
-    transparent 100%
-  ) !important;
+.navbar-appbar .MuiToolbar-root {
+  padding-left: 16px !important;
+  padding-right: 16px !important;
+  min-height: 48px !important;
+  height: 48px !important;
+  display: flex !important;
+  align-items: center !important;
 }
 
-.navbar-logo {
+
+.navbar-brand {
   flex-grow: 1;
   cursor: pointer;
-  font-weight: bold !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 12px !important;
   transition: opacity 0.3s ease;
 }
 
-.navbar-logo:hover {
+.navbar-brand:hover {
   opacity: 0.8;
+}
+
+.navbar-logo-image {
+  height: 28px !important;
+  width: auto !important;
+  object-fit: contain !important;
+  filter: brightness(0) invert(1) !important; /* Make logo white */
+}
+
+.navbar-logo-text {
+  font-weight: bold !important;
+  color: white !important;
 }
 
 .navbar-tabs .MuiTab-root {
   color: rgba(255, 255, 255, 0.8) !important;
   font-weight: 500 !important;
-  font-family: 'Inter', sans-serif !important;
-  font-size: 0.85rem !important;
+  font-family: 'Poppins', sans-serif !important;
+  font-size: 0.8rem !important;
   text-transform: none !important;
   margin: 0 4px !important;
-  border-radius: 8px !important;
+  border-radius: 6px !important;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
   position: relative !important;
-  min-height: 42px !important;
-  padding: 8px 16px !important;
+  min-height: 32px !important;
+  padding: 6px 12px !important;
+  display: flex !important;
+  align-items: center !important;
 }
 
 .navbar-tabs .MuiTab-root:hover {
@@ -71,33 +87,84 @@
   border-radius: 1px;
 }
 
-.navbar-avatar-container {
-  margin-left: 16px;
+.navbar-tabs {
+  display: flex !important;
+  align-items: center !important;
+  height: 100% !important;
 }
 
-.navbar-avatar-button {
-  padding: 0 !important;
-  transition: transform 0.2s ease-in-out;
+.navbar-profile-container {
+  margin-left: 12px;
+  margin-right: 0px;
+  display: flex !important;
+  align-items: center !important;
+  height: 100% !important;
 }
 
-.navbar-avatar-button:hover {
-  transform: scale(1.05);
+.navbar-profile-card {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+
+  padding-left: 2px !important;
+  padding-top: 12px !important;
+  padding-bottom: 12px !important;
+  padding-right: 12px !important;
+  background: rgba(255, 255, 255, 0.1) !important;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+  border-radius: 20px !important;
+  cursor: pointer !important;
+  transition: all 0.3s ease !important;
+  backdrop-filter: blur(10px) !important;
+  height: 36px !important;
+  max-width: 140px !important;
 }
+
 
 .navbar-avatar {
   background-color: white !important;
-  width: 30px !important;
-  height: 30px !important;
+  width: 28px !important;
+  height: 28px !important;
   color: #a01441 !important;
   font-weight: bold !important;
-  font-size: 1.1rem !important;
-  font-family: 'Inter', sans-serif !important;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important;
-  border: 2px solid rgba(255,255,255,0.2) !important;
+  font-size: 0.8rem !important;
+  font-family: 'Poppins', sans-serif !important;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15) !important;
+  border: 1px solid rgba(255,255,255,0.3) !important;
+  flex-shrink: 0 !important;
 }
 
-.navbar-avatar:hover {
-  box-shadow: 0 6px 16px rgba(0,0,0,0.25) !important;
+.navbar-profile-text {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: flex-start !important;
+  justify-content: center !important;
+  line-height: 1.1 !important;
+  min-width: 0 !important;
+  flex: 1 !important;
+}
+
+.navbar-profile-greeting {
+  color: rgba(255, 255, 255, 0.8) !important;
+  font-size: 0.6rem !important;
+  font-weight: 400 !important;
+  font-family: 'Poppins', sans-serif !important;
+  margin: 0 !important;
+  line-height: 1 !important;
+  white-space: nowrap !important;
+}
+
+.navbar-profile-name {
+  color: white !important;
+  font-size: 0.75rem !important;
+  font-weight: 600 !important;
+  font-family: 'Poppins', sans-serif !important;
+  white-space: nowrap !important;
+  max-width: 80px !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  margin: 0 !important;
+  line-height: 1 !important;
 }
 
 .navbar-menu {
@@ -140,5 +207,20 @@
 
 .navbar-logout-item:hover {
   background-color: #f44336 !important;
-  color: white !important;
+  color: rgb(76, 74, 74) !important;
+}
+
+/* Main content area styling to account for fixed navbar */
+.main-content-container {
+  margin-top: 48px !important; /* Reduced navbar height */
+  min-height: calc(100vh - 48px) !important;
+  overflow-y: auto !important;
+}
+
+/* For mobile devices, adjust margin */
+@media (max-width: 600px) {
+  .main-content-container {
+    margin-top: 48px !important; /* Same reduced height for mobile */
+    min-height: calc(100vh - 48px) !important;
+  }
 }

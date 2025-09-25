@@ -3,7 +3,7 @@
   background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
   min-height: 100vh;
   padding: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Helvetica Neue', Arial, sans-serif;
+  font-family: 'Poppins', 'Montserrat', sans-serif;
 }
 
 .roadmap-header-section {
@@ -102,11 +102,11 @@
 
 /* Material-UI Component Font Overrides */
 .roadmap-details-container .MuiTypography-root {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Helvetica Neue', Arial, sans-serif !important;
+  font-family: 'Poppins', 'Montserrat', sans-serif !important;
 }
 
 .roadmap-details-container .MuiStepLabel-label {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Helvetica Neue', Arial, sans-serif !important;
+  font-family: 'Poppins', 'Montserrat', sans-serif !important;
 }
 
 /* Drawer Styling */
@@ -121,7 +121,7 @@
   background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
   height: 100%;
   overflow-y: auto;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Helvetica Neue', Arial, sans-serif;
+  font-family: 'Poppins', 'Montserrat', sans-serif;
 }
 
 .milestone-header {
@@ -221,7 +221,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Helvetica Neue', Arial, sans-serif;
+  font-family: 'Poppins', 'Montserrat', sans-serif;
 }
 
 .topic-icon {
@@ -280,7 +280,7 @@
   box-shadow: 0 4px 16px rgba(46, 125, 50, 0.3) !important;
   width: 100% !important;
   font-size: 1rem !important;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Helvetica Neue', Arial, sans-serif !important;
+  font-family: 'Poppins', 'Montserrat', sans-serif !important;
 }
 
 .complete-milestone-btn:hover {
@@ -356,7 +356,7 @@
 
 /* Markdown Content Styling */
 .explanation-content {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Helvetica Neue', Arial, sans-serif;
+  font-family: 'Poppins', 'Montserrat', sans-serif;
 }
 
 .explanation-content h1,
@@ -366,7 +366,7 @@
   font-weight: 600;
   margin-top: 24px;
   margin-bottom: 12px;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Helvetica Neue', Arial, sans-serif;
+  font-family: 'Poppins', 'Montserrat', sans-serif;
 }
 
 .explanation-content p {
@@ -374,7 +374,7 @@
   margin-bottom: 16px;
   color: #333;
   font-size: 15px;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Helvetica Neue', Arial, sans-serif;
+  font-family: 'Poppins', 'Montserrat', sans-serif;
 }
 
 .explanation-content code {
@@ -399,7 +399,7 @@
 .explanation-content ol {
   padding-left: 24px;
   margin-bottom: 16px;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Helvetica Neue', Arial, sans-serif;
+  font-family: 'Poppins', 'Montserrat', sans-serif;
 }
 
 .explanation-content li {
@@ -407,7 +407,7 @@
   line-height: 1.6;
   color: #333;
   font-size: 15px;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Helvetica Neue', Arial, sans-serif;
+  font-family: 'Poppins', 'Montserrat', sans-serif;
 }
 
 /* Milestone Completion Message */
@@ -425,7 +425,7 @@
   max-width: 400px;
   width: 90%;
   text-align: center;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Helvetica Neue', Arial, sans-serif;
+  font-family: 'Poppins', 'Montserrat', sans-serif;
 }
 
 .close-message-btn {
@@ -438,7 +438,7 @@
   font-weight: 500;
   cursor: pointer;
   transition: background-color 0.3s ease;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Helvetica Neue', Arial, sans-serif;
+  font-family: 'Poppins', 'Montserrat', sans-serif;
 }
 
 .close-message-btn:hover {
