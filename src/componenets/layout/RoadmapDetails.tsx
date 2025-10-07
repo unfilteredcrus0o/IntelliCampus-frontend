@@ -9,6 +9,9 @@ import {
   Drawer,
   SpeedDial,
   SpeedDialAction,
+  Button,
+  Modal,
+  Alert,
 } from "@mui/material";
 import { useParams } from "react-router-dom";
 import ReactMarkdown from "react-markdown";
@@ -16,6 +19,7 @@ import { ROADMAP_ENDPOINTS, PROGRESS_ENDPOINTS } from "../../constants";
 import { Stepper, Step, StepLabel } from "@mui/material";
 import { IconButton } from "@mui/material";
 import { makeAuthenticatedRequest } from "../../utils/api";
+import Quiz from "../../components/Quiz";
 import "./RoadmapDetails.css";
 
 const RoadmapDetails = () => {
@@ -43,6 +47,8 @@ const RoadmapDetails = () => {
   const [isUpdatingProgress, setIsUpdatingProgress] = useState(false);
   const [realtimeTopicStatus, setRealtimeTopicStatus] = useState<{[key: string]: string}>({}); // Real-time status updates
   const [isContentExpanded, setIsContentExpanded] = useState(false);
+  const [quizModalOpen, setQuizModalOpen] = useState(false);
+  const [quizTopicId, setQuizTopicId] = useState<string | null>(null);
 
   // Store original API structure for order preservation
   const originalStructure = useMemo(() => {
@@ -165,13 +171,32 @@ const RoadmapDetails = () => {
     setActiveTopicId(topicId);
     setVisitedTopics((prev) => new Set(prev).add(topicId));
 
+    // Update topic status to "in_progress" if it's not started or completed
+    const currentStatus = getCurrentTopicStatus(topicId);
+    if (currentStatus === 'not_started') {
+      updateRealtimeTopicStatus(topicId, 'in_progress');
+      
+      // Also update backend (optional - can be done when backend is ready)
+      try {
+        await makeAuthenticatedRequest(PROGRESS_ENDPOINTS.UPDATE_TOPIC(topicId), {
+          method: "PUT",
+          body: {
+            status: "in_progress"
+          },
+        });
+      } catch (error) {
+        console.log("Failed to update topic progress to in_progress:", error);
+        // Not critical, continue with UI updates
+      }
+    }
+
     // Check if explanation is already cached
     if (explanationCache[topicId]) {
       setSelectedTopicExplanation(explanationCache[topicId]);
       
       // Show completion dial based on current status (real-time + frozen)
-      const currentStatus = getCurrentTopicStatus(topicId);
-      if (currentStatus !== 'completed') {
+      const updatedStatus = getCurrentTopicStatus(topicId);
+      if (updatedStatus !== 'completed') {
         setShowTopicCompletionDial(true);
       } else {
         setShowTopicCompletionDial(false);
@@ -195,8 +220,8 @@ const RoadmapDetails = () => {
       setExplanationCache((prev) => ({ ...prev, [topicId]: embeddedExplanation }));
       setSelectedTopicExplanation(embeddedExplanation);
       
-      const currentStatus = getCurrentTopicStatus(topicId);
-      setShowTopicCompletionDial(currentStatus !== 'completed');
+      const updatedStatus = getCurrentTopicStatus(topicId);
+      setShowTopicCompletionDial(updatedStatus !== 'completed');
       return;
     }
 
@@ -209,8 +234,8 @@ const RoadmapDetails = () => {
       setExplanationCache((prev) => ({ ...prev, [topicId]: data.explanation }));
       setSelectedTopicExplanation(data.explanation);
       
-      const currentStatus = getCurrentTopicStatus(topicId);
-      setShowTopicCompletionDial(currentStatus !== 'completed');
+      const updatedStatus = getCurrentTopicStatus(topicId);
+      setShowTopicCompletionDial(updatedStatus !== 'completed');
     } catch (error) {
       console.error("Failed to fetch topic explanation:", error);
       setSelectedTopicExplanation("Error loading explanation.");
@@ -219,31 +244,11 @@ const RoadmapDetails = () => {
     }
   };
 
-  const handleTopicCompletion = async () => {
-    if (!activeTopicId || isUpdatingProgress) return;
-
-    setIsUpdatingProgress(true);
-
-    try {
-      const response = await makeAuthenticatedRequest(PROGRESS_ENDPOINTS.UPDATE_TOPIC(activeTopicId), {
-        method: "PUT",
-        body: {
-          status: "completed"
-        },
-      });
-
-      if (response.ok) {
-        updateRealtimeTopicStatus(activeTopicId, 'completed');
-        setShowTopicCompletionDial(false);
-      } else {
-        updateRealtimeTopicStatus(activeTopicId, 'completed');
-        setShowTopicCompletionDial(false);
-      }
-    } catch (error) {
-      updateRealtimeTopicStatus(activeTopicId, 'completed');
-      setShowTopicCompletionDial(false);
-    } finally {
-      setIsUpdatingProgress(false);
+  const handleTopicCompletion = () => {
+    // Open quiz instead of directly completing the topic
+    if (activeTopicId && !isUpdatingProgress) {
+      setQuizTopicId(activeTopicId);
+      setQuizModalOpen(true);
     }
   };
 
@@ -255,12 +260,17 @@ const RoadmapDetails = () => {
       
       for (let topicIndex = 0; topicIndex < milestone.topics.length; topicIndex++) {
         const topic = milestone.topics[topicIndex];
-        const topicStatus = topic.progress?.status || 'not_started';
+        // Use getCurrentTopicStatus to get real-time status including quiz completions
+        const topicStatus = getCurrentTopicStatus(topic.id);
         
         const isCompleted = topicStatus === 'completed';
         const isNotStarted = topicStatus === 'not_started';
         const isInProgress = topicStatus === 'in_progress';
-        const isUnlocked = isCompleted || topicIndex === 0 || milestone.topics[topicIndex - 1].progress?.status === 'completed';
+        
+        // Check if previous topic is completed (use real-time status)
+        const prevTopicCompleted = topicIndex === 0 || 
+          getCurrentTopicStatus(milestone.topics[topicIndex - 1].id) === 'completed';
+        const isUnlocked = isCompleted || prevTopicCompleted;
         
         if (isInProgress) {
           setActiveMilestoneId(milestone.id);
@@ -278,12 +288,99 @@ const RoadmapDetails = () => {
       }
     }
     
+    // If no next topic found, check if we should move to next milestone
+    const currentMilestoneIndex = originalStructure.milestones.findIndex(
+      (m: any) => m.id === activeMilestoneId
+    );
+    
+    // Check if current milestone is complete
+    if (currentMilestoneIndex >= 0) {
+      const currentMilestone = originalStructure.milestones[currentMilestoneIndex];
+      const allTopicsCompleted = currentMilestone.topics?.every((topic: any) => 
+        getCurrentTopicStatus(topic.id) === 'completed'
+      );
+      
+      if (allTopicsCompleted) {
+        // Mark milestone as completed and show completion message
+        setCompletedMilestones(prev => new Set(prev).add(currentMilestone.id));
+        setShowSpeedDial(true);
+        return;
+      }
+    }
+    
+    // Fallback: navigate to first available topic
     const firstMilestone = originalStructure.milestones[0];
     if (firstMilestone?.topics?.length > 0) {
       const firstTopic = firstMilestone.topics[0];
       setActiveMilestoneId(firstMilestone.id);
       setDrawerOpen(true);
       setTimeout(() => handleTopicClick(firstTopic.id), 500);
+    }
+  };
+
+  const handleTakeQuiz = () => {
+    if (activeTopicId) {
+      setQuizTopicId(activeTopicId);
+      setQuizModalOpen(true);
+    }
+  };
+
+  const handleCloseQuiz = () => {
+    setQuizModalOpen(false);
+    setQuizTopicId(null);
+  };
+
+  const handleQuizCompletion = async (passed: boolean) => {
+    if (!activeTopicId || !passed) {
+      handleCloseQuiz();
+      return;
+    }
+
+    // Quiz passed - now complete the topic
+    setIsUpdatingProgress(true);
+    
+    try {
+      const response = await makeAuthenticatedRequest(PROGRESS_ENDPOINTS.UPDATE_TOPIC(activeTopicId), {
+        method: "PUT",
+        body: {
+          status: "completed"
+        },
+      });
+
+      if (response.ok) {
+        updateRealtimeTopicStatus(activeTopicId, 'completed');
+        setShowTopicCompletionDial(false);
+        
+        // Add to completed topics set
+        setCompletedTopics(prev => new Set(prev).add(activeTopicId));
+        
+        // Close quiz modal first
+        handleCloseQuiz();
+        
+        // Auto-navigate to next topic after a short delay
+        setTimeout(() => {
+          autoNavigateToNextTopic();
+        }, 1000);
+        
+      } else {
+        updateRealtimeTopicStatus(activeTopicId, 'completed');
+        setShowTopicCompletionDial(false);
+        setCompletedTopics(prev => new Set(prev).add(activeTopicId));
+        handleCloseQuiz();
+        setTimeout(() => {
+          autoNavigateToNextTopic();
+        }, 1000);
+      }
+    } catch (error) {
+      updateRealtimeTopicStatus(activeTopicId, 'completed');
+      setShowTopicCompletionDial(false);
+      setCompletedTopics(prev => new Set(prev).add(activeTopicId));
+      handleCloseQuiz();
+      setTimeout(() => {
+        autoNavigateToNextTopic();
+      }, 1000);
+    } finally {
+      setIsUpdatingProgress(false);
     }
   };
 
@@ -407,26 +504,26 @@ const RoadmapDetails = () => {
                   </Typography>
                 </Box>
               ) : (
-                <ReactMarkdown>{selectedTopicExplanation}</ReactMarkdown>
+                  <ReactMarkdown>{selectedTopicExplanation}</ReactMarkdown>
               )}
             </div>
           </div>
         )}
 
-        {/* Topic Completion Speed Dial */}
+        {/* Topic Quiz & Completion Speed Dial */}
         {showTopicCompletionDial && activeTopicId && (
           <SpeedDial
-            ariaLabel="Complete Topic"
+            ariaLabel="Take Quiz to Complete Topic"
             sx={{ 
               position: 'fixed', 
               bottom: 32, 
               right: 32,
               '& .MuiSpeedDial-fab': {
-                backgroundColor: isUpdatingProgress ? '#666' : '#2e7d32',
+                backgroundColor: isUpdatingProgress ? '#666' : '#6a1b9a',
                 color: 'white',
                 cursor: isUpdatingProgress ? 'not-allowed' : 'pointer',
                 '&:hover': {
-                  backgroundColor: isUpdatingProgress ? '#666' : '#1b5e20',
+                  backgroundColor: isUpdatingProgress ? '#666' : '#4a148c',
                 },
               }
             }}
@@ -434,7 +531,7 @@ const RoadmapDetails = () => {
               isUpdatingProgress ? (
                 <CircularProgress size={20} color="inherit" />
               ) : (
-                <span style={{ fontSize: "24px" }}>✓</span>
+                <span style={{ fontSize: "20px" }}>🧠</span>
               )
             }
             onClick={isUpdatingProgress ? undefined : handleTopicCompletion}
@@ -583,6 +680,39 @@ const RoadmapDetails = () => {
           </div>
         );
       })()}
+
+      {/* Quiz Modal */}
+      <Modal
+        open={quizModalOpen}
+        onClose={handleCloseQuiz}
+        sx={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          p: 2,
+        }}
+      >
+        <Box
+          sx={{
+            width: "90%",
+            maxWidth: "900px",
+            maxHeight: "90vh",
+            overflow: "auto",
+            bgcolor: "background.paper",
+            borderRadius: 2,
+            boxShadow: 24,
+            outline: "none",
+          }}
+        >
+          {quizTopicId && (
+            <Quiz 
+              topicId={quizTopicId} 
+              onClose={handleCloseQuiz}
+              onQuizComplete={handleQuizCompletion}
+            />
+          )}
+        </Box>
+      </Modal>
     </div>
   );
 };
