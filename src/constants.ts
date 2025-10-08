@@ -16,6 +16,12 @@ export const PROGRESS_ENDPOINTS = {
   UPDATE_TOPIC: (topicId: string) => `${API_BASE_URL}/api/topic/${topicId}/progress`,
   GET_BY_ROADMAP: (roadmapId: string) => `${API_BASE_URL}/api/progress/roadmap/${roadmapId}`,
 };
+
+// Quiz Endpoints (Ready for backend integration)
+export const QUIZ_ENDPOINTS = {
+  START: (topicId: string) => `${API_BASE_URL}/api/topics/${topicId}/quiz/start`,
+  SUBMIT: (quizId: string) => `${API_BASE_URL}/api/quiz/${quizId}/submit`,
+};
  
 //  Auth Endpoints
 export const AUTH_ENDPOINTS = {
